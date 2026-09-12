@@ -1201,7 +1201,7 @@
     "submitButton": "提交訂單並支付",
     "submitting": "提交中...",
     "invoice": {
-      "title": "開票確認",
+      "title": "發票資訊",
       "subtitle": "如需發票，應付金額將加收 10%。",
       "needInvoice": "需要開立發票",
       "feeHint": "選擇開票後，將在目前應付金額上加收 10%。",

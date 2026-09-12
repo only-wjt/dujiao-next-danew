@@ -217,13 +217,13 @@
               <span>{{ t('checkout.previewMemberDiscount') }}</span>
               <span class="font-mono text-amber-600 dark:text-amber-300">-{{ formatPrice(previewMemberDiscount, previewCurrency) }}</span>
             </div>
-            <div v-if="hasPositiveAmount(previewInvoiceFee)" class="flex items-center justify-between">
+            <div v-if="hasPositiveAmount(displayedInvoiceFee)" class="flex items-center justify-between">
               <span>{{ t('checkout.invoice.feeLabel') }}</span>
-              <span class="font-mono text-foreground">+{{ formatPrice(previewInvoiceFee, previewCurrency) }}</span>
+              <span class="font-mono text-foreground">+{{ formatPrice(displayedInvoiceFee, previewCurrency) }}</span>
             </div>
             <div class="flex items-center justify-between border-t pt-3 text-foreground">
               <span class="font-semibold">{{ t('checkout.previewTotal') }}</span>
-              <span class="font-mono text-lg font-bold">{{ formatPrice(previewTotal, previewCurrency) }}</span>
+              <span class="font-mono text-lg font-bold">{{ formatPrice(displayedInvoiceTotal, previewCurrency) }}</span>
             </div>
           </div>
 
@@ -300,6 +300,16 @@
             </div>
           </div>
 
+          <CheckoutInvoiceDialog
+            class="mb-4"
+            :form="invoiceForm"
+            :currency="previewCurrency"
+            :invoice-fee="displayedInvoiceFee"
+            :error="invoiceFormError"
+            :format-price="formatPrice"
+            :has-positive-amount="hasPositiveAmount"
+          />
+
           <Button
             size="lg"
             class="w-full font-semibold"
@@ -311,19 +321,6 @@
         </div>
       </div>
     </div>
-    <CheckoutInvoiceDialog
-      :open="invoiceDialogOpen"
-      :form="invoiceForm"
-      :currency="previewCurrency"
-      :total="displayedInvoiceTotal"
-      :invoice-fee="displayedInvoiceFee"
-      :submitting="submitting"
-      :error="invoiceFormError"
-      :format-price="formatPrice"
-      :has-positive-amount="hasPositiveAmount"
-      @close="closeInvoiceDialog"
-      @confirm="confirmInvoiceAndSubmit"
-    />
   </div>
 </template>
 
@@ -354,9 +351,9 @@ const {
   checkoutMode, guestEmail, guestPassword, guestEmailValid,
   guestCaptchaEnabled, captchaProvider, guestCaptchaPayload, guestTurnstileToken, guestTurnstileSiteKey,
   guestImageCaptchaRef, guestTurnstileRef, handleGuestCaptchaConfigStale,
-  previewCurrency, previewOriginal, previewCoupon, previewPromotion, previewWholesale, previewMemberDiscount, previewTotal, previewInvoiceFee,
+  previewCurrency, previewOriginal, previewCoupon, previewPromotion, previewWholesale, previewMemberDiscount, previewTotal,
   displayedInvoiceFee, displayedInvoiceTotal,
-  invoiceDialogOpen, invoiceForm, invoiceFormError, closeInvoiceDialog, confirmInvoiceAndSubmit,
+  invoiceForm, invoiceFormError,
   previewLoading, couponRefreshing, previewStatusText, hasPositiveAmount, formatDiscountPrice, checkoutAlert,
   showBalanceOption, walletLoading, walletBalance, useBalance, walletOnlyPayment,
   expectedWalletPaidDisplay, expectedOnlinePayDisplay, expectedOnlinePayCents,

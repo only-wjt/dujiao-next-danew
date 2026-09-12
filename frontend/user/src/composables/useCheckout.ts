@@ -240,7 +240,6 @@ export function useCheckout() {
   const previewMemberDiscount = computed(() => preview.value?.member_discount_amount ?? '0')
   const previewTotal = computed(() => preview.value?.total_amount ?? totalAmount.value)
   const previewInvoiceFee = computed(() => preview.value?.invoice_fee_amount ?? '0')
-  const invoiceDialogOpen = ref(false)
   const invoiceFormError = ref('')
   const invoiceForm = reactive({
     requested: false,
@@ -836,33 +835,16 @@ export function useCheckout() {
     }
   }
 
+  watch(defaultInvoiceEmail, (email) => {
+    if (!invoiceForm.email.trim() && email) {
+      invoiceForm.email = email
+    }
+  }, { immediate: true })
+
   const handleSubmit = async () => {
     submitAttempted.value = true
     error.value = ''
     previewError.value = ''
-    if (!canSubmit.value) {
-      error.value = submitBlockedReason.value || t('checkout.errors.submitFailed')
-      return
-    }
-    invoiceForm.requested = false
-    invoiceForm.title = ''
-    invoiceForm.note = ''
-    invoiceForm.email = defaultInvoiceEmail.value
-    invoiceFormError.value = ''
-    invoiceDialogOpen.value = true
-  }
-
-  const closeInvoiceDialog = async () => {
-    const wasRequested = invoiceForm.requested
-    invoiceDialogOpen.value = false
-    invoiceForm.requested = false
-    invoiceFormError.value = ''
-    if (wasRequested) {
-      await loadPreviewNow()
-    }
-  }
-
-  const confirmInvoiceAndSubmit = async () => {
     invoiceFormError.value = ''
     if (invoiceForm.requested) {
       if (!invoiceForm.title.trim()) {
@@ -879,10 +861,9 @@ export function useCheckout() {
       }
     }
     if (!canSubmit.value) {
-      invoiceFormError.value = submitBlockedReason.value || t('checkout.errors.submitFailed')
+      error.value = submitBlockedReason.value || t('checkout.errors.submitFailed')
       return
     }
-    invoiceDialogOpen.value = false
     await submitOrder()
   }
 
@@ -1235,11 +1216,8 @@ export function useCheckout() {
     previewInvoiceFee,
     displayedInvoiceFee,
     displayedInvoiceTotal,
-    invoiceDialogOpen,
     invoiceForm,
     invoiceFormError,
-    closeInvoiceDialog,
-    confirmInvoiceAndSubmit,
     previewLoading,
     couponRefreshing,
     previewStatusText,

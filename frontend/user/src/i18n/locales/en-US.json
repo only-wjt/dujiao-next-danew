@@ -1201,7 +1201,7 @@
     "submitButton": "Place Order & Pay",
     "submitting": "Submitting...",
     "invoice": {
-      "title": "Invoice",
+      "title": "Invoice details",
       "subtitle": "Choosing an invoice adds 10% to the payable amount.",
       "needInvoice": "I need an invoice",
       "feeHint": "If you request an invoice, 10% will be added to the current payable amount.",
