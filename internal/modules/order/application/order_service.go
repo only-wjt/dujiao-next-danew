@@ -148,6 +148,7 @@ type CreateOrderInput struct {
 	ManualFormData      map[string]jsonmap.JSON
 	SkipRiskControl     bool // 完全跳过风控（下游订单）
 	SkipIPRiskControl   bool // 跳过 IP 维度风控（渠道/Bot 订单）
+	Invoice             InvoiceInput
 }
 
 // CreateGuestOrderInput 游客创建订单输入
@@ -162,6 +163,7 @@ type CreateGuestOrderInput struct {
 	AffiliateVisitorKey string
 	ClientIP            string
 	ManualFormData      map[string]jsonmap.JSON
+	Invoice             InvoiceInput
 }
 
 // CreateOrderItem 创建订单项输入
@@ -239,6 +241,7 @@ func (s *OrderService) CreateOrder(input CreateOrderInput) (*orderdomain.Order, 
 		ManualFormData:      input.ManualFormData,
 		SkipRiskControl:     input.SkipRiskControl,
 		SkipIPRiskControl:   input.SkipIPRiskControl,
+		Invoice:             input.Invoice,
 	})
 }
 
@@ -266,6 +269,7 @@ func (s *OrderService) CreateGuestOrder(input CreateGuestOrderInput) (*orderdoma
 		ClientIP:            input.ClientIP,
 		IsGuest:             true,
 		ManualFormData:      input.ManualFormData,
+		Invoice:             input.Invoice,
 	})
 }
 
@@ -288,6 +292,7 @@ type orderCreateParams struct {
 	SkipManualFormCheck      bool
 	SkipRiskControl          bool
 	SkipIPRiskControl        bool
+	Invoice                  InvoiceInput
 }
 
 // OrderPreview 订单金额预览
@@ -299,6 +304,8 @@ type OrderPreview struct {
 	PromotionDiscountAmount money.Amount       `json:"promotion_discount_amount"`
 	WholesaleDiscountAmount money.Amount       `json:"wholesale_discount_amount"`
 	TotalAmount             money.Amount       `json:"total_amount"`
+	InvoiceRequested        bool               `json:"invoice_requested"`
+	InvoiceFeeAmount        money.Amount       `json:"invoice_fee_amount"`
 	Items                   []OrderPreviewItem `json:"items"`
 }
 
@@ -330,6 +337,7 @@ type orderBuildResult struct {
 	WholesaleDiscountAmount decimal.Decimal
 	DiscountAmount          decimal.Decimal
 	TotalAmount             decimal.Decimal
+	InvoiceFeeAmount        decimal.Decimal
 	Currency                string
 	OrderPromotionID        *uint
 	MemberLevelID           *uint
@@ -351,6 +359,7 @@ func (s *OrderService) PreviewOrder(input CreateOrderInput) (*OrderPreview, erro
 		ClientIP:            input.ClientIP,
 		ManualFormData:      input.ManualFormData,
 		SkipManualFormCheck: true,
+		Invoice:             input.Invoice,
 	}
 	if err := s.checkOrderRisk(&params, false); err != nil {
 		return nil, err
@@ -373,6 +382,7 @@ func (s *OrderService) PreviewGuestOrder(input CreateGuestOrderInput) (*OrderPre
 		IsGuest:             true,
 		ManualFormData:      input.ManualFormData,
 		SkipManualFormCheck: true,
+		Invoice:             input.Invoice,
 	}
 	if err := s.checkOrderRisk(&params, false); err != nil {
 		return nil, err
@@ -381,6 +391,11 @@ func (s *OrderService) PreviewGuestOrder(input CreateGuestOrderInput) (*OrderPre
 }
 
 func (s *OrderService) previewOrder(input orderCreateParams) (*OrderPreview, error) {
+	invoice, err := NormalizeInvoiceInput(input.Invoice, false)
+	if err != nil {
+		return nil, err
+	}
+	input.Invoice = invoice
 	result, err := s.buildOrderResult(input)
 	if err != nil {
 		return nil, err
@@ -392,6 +407,7 @@ func (s *OrderService) previewOrder(input orderCreateParams) (*OrderPreview, err
 	} else if isResellerOrderContext(input.Tenant) {
 		return nil, ErrResellerProductNotListed
 	}
+	applyInvoiceToBuildResult(result, invoice)
 	items := make([]OrderPreviewItem, 0, len(result.Plans))
 	for _, plan := range result.Plans {
 		item := plan.Item
@@ -421,6 +437,8 @@ func (s *OrderService) previewOrder(input orderCreateParams) (*OrderPreview, err
 		PromotionDiscountAmount: money.FromDecimal(result.PromotionDiscountAmount),
 		WholesaleDiscountAmount: money.FromDecimal(result.WholesaleDiscountAmount),
 		TotalAmount:             money.FromDecimal(result.TotalAmount),
+		InvoiceRequested:        invoice.Requested,
+		InvoiceFeeAmount:        money.FromDecimal(result.InvoiceFeeAmount),
 		Items:                   items,
 	}, nil
 }
@@ -429,6 +447,12 @@ func (s *OrderService) createOrder(input orderCreateParams) (*orderdomain.Order,
 	if s.queueClient == nil || !s.queueClient.Enabled() {
 		return nil, ErrQueueUnavailable
 	}
+
+	invoice, err := NormalizeInvoiceInput(input.Invoice, true)
+	if err != nil {
+		return nil, err
+	}
+	input.Invoice = invoice
 
 	if err := s.checkOrderRisk(&input, true); err != nil {
 		return nil, err
@@ -447,6 +471,7 @@ func (s *OrderService) createOrder(input orderCreateParams) (*orderdomain.Order,
 	} else if isResellerOrderContext(input.Tenant) {
 		return nil, ErrResellerProductNotListed
 	}
+	applyInvoiceToBuildResult(result, invoice)
 
 	// 仅允许钱包余额支付时，在创建订单（锁库存）前预校验余额是否充足
 	if s.settingService != nil && s.settingService.GetWalletOnlyPayment() {
@@ -514,6 +539,11 @@ func (s *OrderService) createOrder(input orderCreateParams) (*orderdomain.Order,
 		PromotionDiscountAmount: money.FromDecimal(result.PromotionDiscountAmount),
 		WholesaleDiscountAmount: money.FromDecimal(result.WholesaleDiscountAmount),
 		TotalAmount:             money.FromDecimal(result.TotalAmount),
+		InvoiceRequested:        invoice.Requested,
+		InvoiceTitle:            invoice.Title,
+		InvoiceNote:             invoice.Note,
+		InvoiceEmail:            invoice.Email,
+		InvoiceFeeAmount:        money.FromDecimal(result.InvoiceFeeAmount),
 		WalletPaidAmount:        money.FromDecimal(decimal.Zero),
 		OnlinePaidAmount:        money.FromDecimal(result.TotalAmount),
 		RefundedAmount:          money.FromDecimal(decimal.Zero),
@@ -572,6 +602,10 @@ func (s *OrderService) createOrder(input orderCreateParams) (*orderdomain.Order,
 				PromotionDiscountAmount: money.FromDecimal(plan.PromotionDiscount),
 				WholesaleDiscountAmount: money.FromDecimal(plan.WholesaleDiscount),
 				TotalAmount:             money.FromDecimal(normalizeOrderAmount(plan.TotalAmount.Sub(plan.CouponDiscount))),
+				InvoiceRequested:        invoice.Requested,
+				InvoiceTitle:            invoice.Title,
+				InvoiceNote:             invoice.Note,
+				InvoiceEmail:            invoice.Email,
 				WalletPaidAmount:        money.FromDecimal(decimal.Zero),
 				OnlinePaidAmount:        money.FromDecimal(normalizeOrderAmount(plan.TotalAmount.Sub(plan.CouponDiscount))),
 				RefundedAmount:          money.FromDecimal(decimal.Zero),

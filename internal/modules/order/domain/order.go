@@ -24,6 +24,11 @@ type Order struct {
 	PromotionDiscountAmount money.Amount `gorm:"type:decimal(20,2);not null;default:0" json:"promotion_discount_amount"`           // 活动价优惠金额
 	WholesaleDiscountAmount money.Amount `gorm:"type:decimal(20,2);not null;default:0" json:"wholesale_discount_amount"`           // 批发价优惠金额
 	TotalAmount             money.Amount `gorm:"type:decimal(20,2);not null;default:0" json:"total_amount"`                        // 实付金额
+	InvoiceRequested        bool         `gorm:"not null;default:false" json:"invoice_requested"`                                  // 是否需要开票
+	InvoiceTitle            string       `gorm:"type:varchar(200)" json:"invoice_title,omitempty"`                                 // 发票抬头
+	InvoiceNote             string       `gorm:"type:varchar(500)" json:"invoice_note,omitempty"`                                  // 发票备注
+	InvoiceEmail            string       `gorm:"type:varchar(200)" json:"invoice_email,omitempty"`                                 // 收票邮箱
+	InvoiceFeeAmount        money.Amount `gorm:"type:decimal(20,2);not null;default:0" json:"invoice_fee_amount"`                  // 开票加价金额
 	WalletPaidAmount        money.Amount `gorm:"type:decimal(20,2);not null;default:0" json:"wallet_paid_amount"`                  // 钱包支付金额
 	OnlinePaidAmount        money.Amount `gorm:"type:decimal(20,2);not null;default:0" json:"online_paid_amount"`                  // 在线支付金额
 	RefundedAmount          money.Amount `gorm:"type:decimal(20,2);not null;default:0" json:"refunded_amount"`                     // 已退款金额（退回钱包）

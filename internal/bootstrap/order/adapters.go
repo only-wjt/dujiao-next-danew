@@ -333,6 +333,7 @@ func (a orderCreateAdapter) CreateOrder(input ordertransport.CreateOrderInput) (
 		AffiliateVisitorKey: input.AffiliateVisitorKey,
 		ClientIP:            input.ClientIP,
 		ManualFormData:      input.ManualFormData,
+		Invoice:             invoiceInputFromTransport(input.InvoiceRequested, input.InvoiceTitle, input.InvoiceNote, input.InvoiceEmail),
 	})
 	return order, mapOrderTransportError(err)
 }
@@ -349,6 +350,7 @@ func (a orderCreateAdapter) CreateGuestOrder(input ordertransport.CreateGuestOrd
 		AffiliateVisitorKey: input.AffiliateVisitorKey,
 		ClientIP:            input.ClientIP,
 		ManualFormData:      input.ManualFormData,
+		Invoice:             invoiceInputFromTransport(input.InvoiceRequested, input.InvoiceTitle, input.InvoiceNote, input.InvoiceEmail),
 	})
 	return order, mapOrderTransportError(err)
 }
@@ -405,6 +407,7 @@ func (a orderPreviewAdapter) PreviewOrder(input ordertransport.CreateOrderInput)
 		AffiliateVisitorKey: input.AffiliateVisitorKey,
 		ClientIP:            input.ClientIP,
 		ManualFormData:      input.ManualFormData,
+		Invoice:             invoiceInputFromTransport(input.InvoiceRequested, input.InvoiceTitle, input.InvoiceNote, input.InvoiceEmail),
 	})
 	if err != nil {
 		return nil, mapOrderTransportError(err)
@@ -424,6 +427,7 @@ func (a orderPreviewAdapter) PreviewGuestOrder(input ordertransport.CreateGuestO
 		AffiliateVisitorKey: input.AffiliateVisitorKey,
 		ClientIP:            input.ClientIP,
 		ManualFormData:      input.ManualFormData,
+		Invoice:             invoiceInputFromTransport(input.InvoiceRequested, input.InvoiceTitle, input.InvoiceNote, input.InvoiceEmail),
 	})
 	if err != nil {
 		return nil, mapOrderTransportError(err)
@@ -476,7 +480,18 @@ func mapOrderPreview(preview *orderapp.OrderPreview) *ordertransport.OrderPrevie
 		PromotionDiscountAmount: preview.PromotionDiscountAmount,
 		WholesaleDiscountAmount: preview.WholesaleDiscountAmount,
 		TotalAmount:             preview.TotalAmount,
+		InvoiceRequested:        preview.InvoiceRequested,
+		InvoiceFeeAmount:        preview.InvoiceFeeAmount,
 		Items:                   items,
+	}
+}
+
+func invoiceInputFromTransport(requested bool, title, note, email string) orderapp.InvoiceInput {
+	return orderapp.InvoiceInput{
+		Requested: requested,
+		Title:     title,
+		Note:      note,
+		Email:     email,
 	}
 }
 
@@ -505,6 +520,8 @@ func mapOrderTransportError(err error) error {
 		{orderapp.ErrGuestEmailRequired, ordertransport.ErrGuestEmailRequired},
 		{orderapp.ErrGuestPasswordRequired, ordertransport.ErrGuestPasswordRequired},
 		{orderapp.ErrInvalidEmail, ordertransport.ErrInvalidEmail},
+		{orderapp.ErrInvoiceTitleRequired, ordertransport.ErrInvoiceTitleRequired},
+		{orderapp.ErrInvoiceEmailRequired, ordertransport.ErrInvoiceEmailRequired},
 		{orderapp.ErrProductPurchaseNotAllowed, ordertransport.ErrProductPurchaseNotAllowed},
 		{orderapp.ErrManualStockInsufficient, ordertransport.ErrManualStockInsufficient},
 		{orderapp.ErrOrderCurrencyMismatch, ordertransport.ErrOrderCurrencyMismatch},

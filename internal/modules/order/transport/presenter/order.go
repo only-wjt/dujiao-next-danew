@@ -74,6 +74,11 @@ type OrderDetail struct {
 	PromotionDiscountAmount  money.Amount      `json:"promotion_discount_amount"`
 	WholesaleDiscountAmount  money.Amount      `json:"wholesale_discount_amount"`
 	TotalAmount              money.Amount      `json:"total_amount"`
+	InvoiceRequested         bool              `json:"invoice_requested"`
+	InvoiceTitle             string            `json:"invoice_title,omitempty"`
+	InvoiceNote              string            `json:"invoice_note,omitempty"`
+	InvoiceEmail             string            `json:"invoice_email,omitempty"`
+	InvoiceFeeAmount         money.Amount      `json:"invoice_fee_amount"`
 	WalletPaidAmount         money.Amount      `json:"wallet_paid_amount"`
 	OnlinePaidAmount         money.Amount      `json:"online_paid_amount"`
 	RefundedAmount           money.Amount      `json:"refunded_amount"`
@@ -112,6 +117,11 @@ func NewOrderDetail(o *orderdomain.Order) OrderDetail {
 		PromotionDiscountAmount: o.PromotionDiscountAmount,
 		WholesaleDiscountAmount: o.WholesaleDiscountAmount,
 		TotalAmount:             o.TotalAmount,
+		InvoiceRequested:        o.InvoiceRequested,
+		InvoiceTitle:            o.InvoiceTitle,
+		InvoiceNote:             o.InvoiceNote,
+		InvoiceEmail:            o.InvoiceEmail,
+		InvoiceFeeAmount:        o.InvoiceFeeAmount,
 		WalletPaidAmount:        o.WalletPaidAmount,
 		OnlinePaidAmount:        o.OnlinePaidAmount,
 		RefundedAmount:          o.RefundedAmount,

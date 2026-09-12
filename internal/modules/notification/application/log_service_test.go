@@ -44,6 +44,29 @@ type notificationFeishuCall struct {
 	message       string
 }
 
+type notificationTelegramStub struct {
+	token   string
+	chatID  string
+	message string
+	calls   int
+}
+
+func (s *notificationTelegramStub) SendMessage(_ context.Context, chatID, message string) error {
+	s.calls++
+	s.token = ""
+	s.chatID = chatID
+	s.message = message
+	return nil
+}
+
+func (s *notificationTelegramStub) SendMessageWithBotToken(_ context.Context, botToken, chatID, message string) error {
+	s.calls++
+	s.token = botToken
+	s.chatID = chatID
+	s.message = message
+	return nil
+}
+
 type notificationFeishuStub struct {
 	calls []notificationFeishuCall
 }
@@ -121,6 +144,26 @@ func setupLogService(t *testing.T) (*Service, *LogService) {
 	}
 	service := NewService(notificationSettingsStub{notification: setting}, notificationEmailStub{}, nil, nil, logService, nil, nil)
 	return service, logService
+}
+
+func TestServiceSendTestUsesFormTelegramBotToken(t *testing.T) {
+	setting := settingsmessaging.NotificationCenterDefaultSetting()
+	setting.DefaultLocale = constants.LocaleEnUS
+	sender := &notificationTelegramStub{}
+	service := NewService(notificationSettingsStub{notification: setting}, nil, nil, nil, nil, sender, nil)
+
+	if err := service.SendTest(context.Background(), contract.TestSendInput{
+		Channel:  constants.NotificationChannelTelegram,
+		Target:   "10001",
+		Scene:    constants.NotificationEventOrderPaidSuccess,
+		Locale:   constants.LocaleEnUS,
+		BotToken: "  form-token  ",
+	}); err != nil {
+		t.Fatalf("SendTest failed: %v", err)
+	}
+	if sender.calls != 1 || sender.token != "form-token" || sender.chatID != "10001" {
+		t.Fatalf("unexpected telegram send: %#v", sender)
+	}
 }
 
 func TestServiceSendTestRecordsSuccessLog(t *testing.T) {

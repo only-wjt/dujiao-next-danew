@@ -66,6 +66,10 @@ type CreateOrderAndPayRequest struct {
 	ManualFormData      map[string]jsonmap.JSON `json:"manual_form_data"`
 	ChannelID           uint                    `json:"channel_id"`
 	UseBalance          bool                    `json:"use_balance"`
+	InvoiceRequested    bool                    `json:"invoice_requested"`
+	InvoiceTitle        string                  `json:"invoice_title"`
+	InvoiceNote         string                  `json:"invoice_note"`
+	InvoiceEmail        string                  `json:"invoice_email"`
 }
 
 // CreateGuestOrderAndPayRequest 游客创建订单并发起支付请求
@@ -79,6 +83,10 @@ type CreateGuestOrderAndPayRequest struct {
 	ManualFormData      map[string]jsonmap.JSON           `json:"manual_form_data"`
 	CaptchaPayload      captchahttp.CaptchaPayloadRequest `json:"captcha_payload"`
 	ChannelID           uint                              `json:"channel_id"`
+	InvoiceRequested    bool                              `json:"invoice_requested"`
+	InvoiceTitle        string                            `json:"invoice_title"`
+	InvoiceNote         string                            `json:"invoice_note"`
+	InvoiceEmail        string                            `json:"invoice_email"`
 }
 
 // CreateHandler 处理前台订单创建与 create-and-pay HTTP。
@@ -118,6 +126,10 @@ func (h *CreateHandler) CreateOrder(c *gin.Context) {
 		AffiliateVisitorKey: req.AffiliateVisitorKey,
 		ClientIP:            c.ClientIP(),
 		ManualFormData:      req.ManualFormData,
+		InvoiceRequested:    req.InvoiceRequested,
+		InvoiceTitle:        req.InvoiceTitle,
+		InvoiceNote:         req.InvoiceNote,
+		InvoiceEmail:        req.InvoiceEmail,
 	})
 	if err != nil {
 		respondUserOrderCreateError(c, err)
@@ -151,6 +163,10 @@ func (h *CreateHandler) CreateGuestOrder(c *gin.Context) {
 		AffiliateVisitorKey: req.AffiliateVisitorKey,
 		ClientIP:            c.ClientIP(),
 		ManualFormData:      req.ManualFormData,
+		InvoiceRequested:    req.InvoiceRequested,
+		InvoiceTitle:        req.InvoiceTitle,
+		InvoiceNote:         req.InvoiceNote,
+		InvoiceEmail:        req.InvoiceEmail,
 	})
 	if err != nil {
 		respondGuestOrderCreateError(c, err)
@@ -183,6 +199,10 @@ func (h *CreateHandler) CreateOrderAndPay(c *gin.Context) {
 		AffiliateVisitorKey: req.AffiliateVisitorKey,
 		ClientIP:            c.ClientIP(),
 		ManualFormData:      req.ManualFormData,
+		InvoiceRequested:    req.InvoiceRequested,
+		InvoiceTitle:        req.InvoiceTitle,
+		InvoiceNote:         req.InvoiceNote,
+		InvoiceEmail:        req.InvoiceEmail,
 	})
 	if err != nil {
 		respondUserOrderCreateError(c, err)
@@ -225,6 +245,10 @@ func (h *CreateHandler) CreateGuestOrderAndPay(c *gin.Context) {
 		AffiliateVisitorKey: req.AffiliateVisitorKey,
 		ClientIP:            c.ClientIP(),
 		ManualFormData:      req.ManualFormData,
+		InvoiceRequested:    req.InvoiceRequested,
+		InvoiceTitle:        req.InvoiceTitle,
+		InvoiceNote:         req.InvoiceNote,
+		InvoiceEmail:        req.InvoiceEmail,
 	})
 	if err != nil {
 		respondGuestOrderCreateError(c, err)

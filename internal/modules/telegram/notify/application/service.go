@@ -45,6 +45,19 @@ func (s *Service) SendWithBotToken(ctx context.Context, botToken string, options
 	return s.sender.SendWithBotToken(ctx, botToken, options)
 }
 
+// SendMessageWithBotToken 使用表单或调用方提供的 Bot Token 发送纯文本通知。
+func (s *Service) SendMessageWithBotToken(ctx context.Context, botToken, chatID, message string) error {
+	token := strings.TrimSpace(botToken)
+	if token == "" {
+		return fmt.Errorf("%w: Telegram Bot Token 未配置", notifycontract.ErrNotifyConfigInvalid)
+	}
+	return s.sender.SendWithBotToken(ctx, token, notifycontract.SendOptions{
+		ChatID:                chatID,
+		Message:               message,
+		DisableWebPagePreview: true,
+	})
+}
+
 func (s *Service) resolveBotToken() (string, error) {
 	if s.settings != nil {
 		notifySetting, err := s.settings.GetNotificationCenterSetting()

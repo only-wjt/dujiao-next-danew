@@ -1,4 +1,4 @@
-import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useCartStore, type CartItem } from '../stores/cart'
@@ -8,7 +8,7 @@ import { useUserAuthStore } from '../stores/userAuth'
 import { guestOrderAPI, userOrderAPI, walletAPI, type CaptchaPayload } from '../api'
 import { debounceAsync } from '../utils/debounce'
 import { type PageAlert } from '../utils/alerts'
-import { amountToCents, basisPointsToPercent, centsToAmount, parseInteger, rateToBasisPoints } from '../utils/money'
+import { amountToCents, basisPointsToPercent, calculateFeeCents, centsToAmount, parseInteger, rateToBasisPoints } from '../utils/money'
 import { buildSkuDisplayText, normalizeSkuId } from '../utils/sku'
 import { refreshCartStockSnapshots, cartItemPurchaseLimit as itemPurchaseLimit, cartItemPurchaseMin as itemPurchaseMin } from '../utils/cartStock'
 import { getImageUrl } from '../utils/image'
@@ -239,6 +239,41 @@ export function useCheckout() {
   const previewWholesale = computed(() => preview.value?.wholesale_discount_amount ?? '0')
   const previewMemberDiscount = computed(() => preview.value?.member_discount_amount ?? '0')
   const previewTotal = computed(() => preview.value?.total_amount ?? totalAmount.value)
+  const previewInvoiceFee = computed(() => preview.value?.invoice_fee_amount ?? '0')
+  const invoiceDialogOpen = ref(false)
+  const invoiceFormError = ref('')
+  const invoiceForm = reactive({
+    requested: false,
+    title: '',
+    note: '',
+    email: '',
+  })
+  const invoiceBaseCents = computed(() => {
+    const totalCents = amountToCents(previewTotal.value) ?? 0
+    const feeCents = amountToCents(previewInvoiceFee.value) ?? 0
+    if (preview.value?.invoice_requested && feeCents > 0) {
+      return Math.max(0, totalCents - feeCents)
+    }
+    return totalCents
+  })
+  const displayedInvoiceFee = computed(() => {
+    if (!invoiceForm.requested) return '0'
+    if (preview.value?.invoice_requested) return String(previewInvoiceFee.value ?? '0')
+    return centsToAmount(calculateFeeCents(invoiceBaseCents.value, 1000) ?? 0)
+  })
+  const displayedInvoiceTotal = computed(() => {
+    if (!invoiceForm.requested) return previewTotal.value
+    if (preview.value?.invoice_requested) return previewTotal.value
+    const feeCents = calculateFeeCents(invoiceBaseCents.value, 1000) ?? 0
+    return centsToAmount(invoiceBaseCents.value + feeCents)
+  })
+  const defaultInvoiceEmail = computed(() => {
+    if (userAuthStore.isAuthenticated) {
+      return String(userAuthStore.user?.email || '').trim()
+    }
+    return guestEmail.value.trim()
+  })
+  const isLikelyEmail = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim())
   const checkoutItemCurrency = computed(() => previewCurrency.value)
 
   const previewItemsByKey = computed(() => {
@@ -661,6 +696,10 @@ export function useCheckout() {
     affiliate_visitor_key: getAffiliateVisitorKey() || undefined,
     items: buildItemsPayload(),
     manual_form_data: buildManualFormDataPayload(),
+    invoice_requested: invoiceForm.requested || undefined,
+    invoice_title: invoiceForm.requested ? invoiceForm.title.trim() : undefined,
+    invoice_note: invoiceForm.requested ? invoiceForm.note.trim() : undefined,
+    invoice_email: invoiceForm.requested ? invoiceForm.email.trim() : undefined,
   })
 
   const loadOrderPaymentChannels = async () => {
@@ -805,7 +844,49 @@ export function useCheckout() {
       error.value = submitBlockedReason.value || t('checkout.errors.submitFailed')
       return
     }
+    invoiceForm.requested = false
+    invoiceForm.title = ''
+    invoiceForm.note = ''
+    invoiceForm.email = defaultInvoiceEmail.value
+    invoiceFormError.value = ''
+    invoiceDialogOpen.value = true
+  }
 
+  const closeInvoiceDialog = async () => {
+    const wasRequested = invoiceForm.requested
+    invoiceDialogOpen.value = false
+    invoiceForm.requested = false
+    invoiceFormError.value = ''
+    if (wasRequested) {
+      await loadPreviewNow()
+    }
+  }
+
+  const confirmInvoiceAndSubmit = async () => {
+    invoiceFormError.value = ''
+    if (invoiceForm.requested) {
+      if (!invoiceForm.title.trim()) {
+        invoiceFormError.value = t('checkout.invoice.titleRequired')
+        return
+      }
+      if (!invoiceForm.email.trim()) {
+        invoiceFormError.value = t('checkout.invoice.emailRequired')
+        return
+      }
+      if (!isLikelyEmail(invoiceForm.email)) {
+        invoiceFormError.value = t('error.email_invalid')
+        return
+      }
+    }
+    if (!canSubmit.value) {
+      invoiceFormError.value = submitBlockedReason.value || t('checkout.errors.submitFailed')
+      return
+    }
+    invoiceDialogOpen.value = false
+    await submitOrder()
+  }
+
+  const submitOrder = async () => {
     submitting.value = true
     try {
       await loadPreviewNow()
@@ -865,7 +946,7 @@ export function useCheckout() {
   }
 
   watch(
-    () => [cartItems.value, manualFormFingerprint.value, normalizedCouponCode.value, checkoutMode.value, guestEmail.value, guestPassword.value, userAuthStore.isAuthenticated],
+    () => [cartItems.value, manualFormFingerprint.value, normalizedCouponCode.value, checkoutMode.value, guestEmail.value, guestPassword.value, userAuthStore.isAuthenticated, invoiceForm.requested],
     () => {
       debouncedLoadPreview()
     },
@@ -1151,6 +1232,14 @@ export function useCheckout() {
     previewWholesale,
     previewMemberDiscount,
     previewTotal,
+    previewInvoiceFee,
+    displayedInvoiceFee,
+    displayedInvoiceTotal,
+    invoiceDialogOpen,
+    invoiceForm,
+    invoiceFormError,
+    closeInvoiceDialog,
+    confirmInvoiceAndSubmit,
     previewLoading,
     couponRefreshing,
     previewStatusText,

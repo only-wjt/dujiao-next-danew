@@ -73,12 +73,14 @@ const notificationData = reactive({
   scenes: {
     wallet_recharge_success: true,
     order_paid_success: true,
+    invoice_requested: true,
     manual_fulfillment_pending: true,
     exception_alert: true,
   },
   templates: {
     wallet_recharge_success: createNotificationSceneTemplate(),
     order_paid_success: createNotificationSceneTemplate(),
+    invoice_requested: createNotificationSceneTemplate(),
     manual_fulfillment_pending: createNotificationSceneTemplate(),
     exception_alert: createNotificationSceneTemplate(),
   },
@@ -157,6 +159,7 @@ const currentChannelTargets = computed(() => {
 const testScenes = computed(() => [
   { value: 'wallet_recharge_success', label: t('admin.settings.notification.scenes.walletRechargeSuccess') },
   { value: 'order_paid_success', label: t('admin.settings.notification.scenes.orderPaidSuccess') },
+  { value: 'invoice_requested', label: t('admin.settings.notification.scenes.invoiceRequested') },
   { value: 'manual_fulfillment_pending', label: t('admin.settings.notification.scenes.manualFulfillmentPending') },
   { value: 'exception_alert', label: t('admin.settings.notification.scenes.exceptionAlert') },
 ])
@@ -204,12 +207,14 @@ const fetchSettings = async () => {
     const notifScenes = notification.scenes as Record<string, unknown> | undefined
     notificationData.scenes.wallet_recharge_success = !!notifScenes?.wallet_recharge_success
     notificationData.scenes.order_paid_success = !!notifScenes?.order_paid_success
+    notificationData.scenes.invoice_requested = notifScenes?.invoice_requested !== false
     notificationData.scenes.manual_fulfillment_pending = !!notifScenes?.manual_fulfillment_pending
     notificationData.scenes.exception_alert = !!notifScenes?.exception_alert
 
     const notifTemplates = notification.templates as Record<string, unknown> | undefined
     notificationData.templates.wallet_recharge_success = normalizeNotificationSceneTemplate(notifTemplates?.wallet_recharge_success)
     notificationData.templates.order_paid_success = normalizeNotificationSceneTemplate(notifTemplates?.order_paid_success)
+    notificationData.templates.invoice_requested = normalizeNotificationSceneTemplate(notifTemplates?.invoice_requested)
     notificationData.templates.manual_fulfillment_pending = normalizeNotificationSceneTemplate(notifTemplates?.manual_fulfillment_pending)
     notificationData.templates.exception_alert = normalizeNotificationSceneTemplate(notifTemplates?.exception_alert)
     syncTestTarget(true)
@@ -279,6 +284,7 @@ const notificationSceneLabel = (value: string) => {
   const keyMap: Record<string, string> = {
     wallet_recharge_success: 'admin.settings.notification.scenes.walletRechargeSuccess',
     order_paid_success: 'admin.settings.notification.scenes.orderPaidSuccess',
+    invoice_requested: 'admin.settings.notification.scenes.invoiceRequested',
     manual_fulfillment_pending: 'admin.settings.notification.scenes.manualFulfillmentPending',
     exception_alert: 'admin.settings.notification.scenes.exceptionAlert',
   }
@@ -308,16 +314,19 @@ const sendNotificationTest = async () => {
   }
   notificationTesting.value = true
   try {
+    const botToken = String(notificationTabRef.value?.telegramBotToken?.() || '').trim()
     await adminAPI.testNotificationCenterSettings({
       channel: testForm.channel,
       target: testForm.target.trim(),
       scene: testForm.scene,
       locale: currentLang.value,
+      ...(botToken ? { bot_token: botToken } : {}),
     })
     notifySuccess(t('admin.settings.notification.test.success'))
     await fetchNotificationLogs(1)
   } catch (err: any) {
-    const message = String(err?.response?.data?.message || '')
+    if (err?.__notified) return
+    const message = String(err?.message || err?.response?.data?.message || '')
     if (testForm.channel === 'telegram' && /bot token|config invalid/i.test(message)) {
       notifyError(t('admin.settings.notification.test.tokenRequired'))
     } else {

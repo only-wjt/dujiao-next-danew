@@ -11,9 +11,23 @@ import (
 
 	"github.com/dujiao-next/internal/modules/notification/contract"
 	"github.com/dujiao-next/internal/modules/notification/domain"
+	settingsmessaging "github.com/dujiao-next/internal/modules/settings/schema/messaging"
 
 	"github.com/gin-gonic/gin"
 )
+
+type notificationSettingsStub struct {
+	patched settingsmessaging.NotificationCenterSettingPatch
+}
+
+func (s *notificationSettingsStub) GetNotificationCenterSetting() (settingsmessaging.NotificationCenterSetting, error) {
+	return settingsmessaging.NotificationCenterSetting{}, nil
+}
+
+func (s *notificationSettingsStub) PatchNotificationCenterSetting(patch settingsmessaging.NotificationCenterSettingPatch) (settingsmessaging.NotificationCenterSetting, error) {
+	s.patched = patch
+	return settingsmessaging.NotificationCenterSetting{}, nil
+}
 
 type notificationLogServiceStub struct {
 	items []domain.NotificationLog
@@ -133,5 +147,35 @@ func TestNotificationCenterTestSendAcceptsFeishuChannel(t *testing.T) {
 	}
 	if sender.input.Channel != "feishu" || sender.input.Target != "oc_demo" {
 		t.Fatalf("unexpected test send input: %#v", sender.input)
+	}
+}
+
+func TestNotificationCenterTestSendPassesTelegramBotToken(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	sender := &notificationTestSenderStub{}
+	settings := &notificationSettingsStub{}
+	h := &AdminHandler{settings: settings, sender: sender}
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Request = httptest.NewRequest(
+		http.MethodPost,
+		"/admin/settings/notification-center/test",
+		strings.NewReader(`{"channel":"telegram","target":" 10001 ","scene":"order_paid_success","bot_token":" 123:ABC "}`),
+	)
+	c.Request.Header.Set("Content-Type", "application/json")
+
+	h.TestNotificationCenterSettings(c)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("status want 200 got %d body=%s", w.Code, w.Body.String())
+	}
+	if sender.input.Channel != "telegram" || sender.input.Target != "10001" || sender.input.BotToken != "123:ABC" {
+		t.Fatalf("unexpected test send input: %#v", sender.input)
+	}
+	if settings.patched.Channels == nil || settings.patched.Channels.Telegram == nil || settings.patched.Channels.Telegram.BotToken == nil {
+		t.Fatalf("expected test send to persist telegram bot token")
+	}
+	if got := *settings.patched.Channels.Telegram.BotToken; got != "123:ABC" {
+		t.Fatalf("persisted bot token = %q", got)
 	}
 }

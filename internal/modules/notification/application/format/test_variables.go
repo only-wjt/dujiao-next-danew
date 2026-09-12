@@ -51,6 +51,18 @@ func BuildTestVariables(scene, locale string) map[string]interface{} {
 			"fulfillment_items_summary": buildNotificationTestFulfillmentItems(locale),
 			"delivery_summary":          BuildDeliverySummary(locale, OrderItemCounts{Total: 2, Auto: 1, Manual: 1}),
 		}
+	case constants.NotificationEventInvoiceRequested:
+		return map[string]interface{}{
+			"customer_label": localizedNotificationText(locale, "张三 <zhangsan@example.com>", "張三 <zhangsan@example.com>", "Alex Zhang <zhangsan@example.com>"),
+			"customer_email": "zhangsan@example.com",
+			"order_no":       "DJ202603230001",
+			"amount":         "328.90",
+			"currency":       "USD",
+			"invoice_title":  localizedNotificationText(locale, "上海某某科技有限公司", "上海某某科技有限公司", "Shanghai Example Tech Co., Ltd."),
+			"invoice_note":   localizedNotificationText(locale, "备注可选", "備註可選", "Optional note"),
+			"invoice_email":  "billing@example.com",
+			"items_summary":  buildNotificationTestOrderItems(locale),
+		}
 	case constants.NotificationEventManualFulfillmentPending:
 		return map[string]interface{}{
 			"customer_label":            localizedNotificationText(locale, "张三 <zhangsan@example.com>", "張三 <zhangsan@example.com>", "Alex Zhang <zhangsan@example.com>"),

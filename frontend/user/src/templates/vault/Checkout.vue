@@ -130,6 +130,7 @@
             <div class="flex items-center justify-between text-[13.5px]"><span class="text-muted-foreground">{{ t('checkout.previewWholesale') }}</span><span class="font-semibold" :class="hasPositiveAmount(previewWholesale) ? 'text-[color:var(--teal-strong)]' : 'text-foreground'">{{ formatDiscountPrice(previewWholesale, previewCurrency) }}</span></div>
           </template>
           <div v-if="Number(previewMemberDiscount) > 0" class="flex items-center justify-between text-[13.5px]"><span class="text-muted-foreground">{{ t('checkout.previewMemberDiscount') }}</span><span class="font-semibold text-[color:var(--gold-strong)]">-{{ formatPrice(previewMemberDiscount, previewCurrency) }}</span></div>
+          <div v-if="hasPositiveAmount(previewInvoiceFee)" class="flex items-center justify-between text-[13.5px]"><span class="text-muted-foreground">{{ t('checkout.invoice.feeLabel') }}</span><span class="font-semibold text-foreground">+{{ formatPrice(previewInvoiceFee, previewCurrency) }}</span></div>
           <div class="mt-1 flex items-center justify-between border-t pt-3 font-bold text-foreground"><span>{{ t('checkout.previewTotal') }}</span><span class="text-[22px] text-primary tabular-nums">{{ formatPrice(previewTotal, previewCurrency) }}</span></div>
         </div>
 
@@ -195,6 +196,19 @@
         </Button>
       </aside>
     </div>
+    <CheckoutInvoiceDialog
+      :open="invoiceDialogOpen"
+      :form="invoiceForm"
+      :currency="previewCurrency"
+      :total="displayedInvoiceTotal"
+      :invoice-fee="displayedInvoiceFee"
+      :submitting="submitting"
+      :error="invoiceFormError"
+      :format-price="formatPrice"
+      :has-positive-amount="hasPositiveAmount"
+      @close="closeInvoiceDialog"
+      @confirm="confirmInvoiceAndSubmit"
+    />
   </div>
 </template>
 
@@ -206,6 +220,7 @@ import { Input } from '@/components/ui/input'
 import ImageCaptcha from '../../components/captcha/ImageCaptcha.vue'
 import TurnstileCaptcha from '../../components/captcha/TurnstileCaptcha.vue'
 import CheckoutManualForm from '../../components/checkout/CheckoutManualForm.vue'
+import CheckoutInvoiceDialog from '../../components/checkout/CheckoutInvoiceDialog.vue'
 import VaultCheckoutSteps from './components/VaultCheckoutSteps.vue'
 import { useCheckout } from '../../composables/useCheckout'
 
@@ -221,7 +236,9 @@ const {
   checkoutMode, guestEmail, guestPassword, guestEmailValid,
   guestCaptchaEnabled, captchaProvider, guestCaptchaPayload, guestTurnstileToken, guestTurnstileSiteKey,
   guestImageCaptchaRef, guestTurnstileRef, handleGuestCaptchaConfigStale,
-  previewCurrency, previewOriginal, previewCoupon, previewPromotion, previewWholesale, previewMemberDiscount, previewTotal,
+  previewCurrency, previewOriginal, previewCoupon, previewPromotion, previewWholesale, previewMemberDiscount, previewTotal, previewInvoiceFee,
+  displayedInvoiceFee, displayedInvoiceTotal,
+  invoiceDialogOpen, invoiceForm, invoiceFormError, closeInvoiceDialog, confirmInvoiceAndSubmit,
   previewLoading, couponRefreshing, previewStatusText, hasPositiveAmount, formatDiscountPrice, checkoutAlert,
   showBalanceOption, walletLoading, walletBalance, useBalance, walletOnlyPayment,
   expectedWalletPaidDisplay, expectedOnlinePayDisplay, expectedOnlinePayCents,

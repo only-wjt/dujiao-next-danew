@@ -79,7 +79,12 @@ func (s *Service) SendTest(ctx context.Context, input contract.TestSendInput) er
 		gatewayCtx, cancel := detachOutboundRequestContext(ctx)
 		defer cancel()
 		if s.telegramSender != nil {
-			sendErr = s.telegramSender.SendMessage(gatewayCtx, target, format.ComposePlainTextMessage(title, body))
+			message := format.ComposePlainTextMessage(title, body)
+			if token := strings.TrimSpace(input.BotToken); token != "" {
+				sendErr = s.telegramSender.SendMessageWithBotToken(gatewayCtx, token, target, message)
+			} else {
+				sendErr = s.telegramSender.SendMessage(gatewayCtx, target, message)
+			}
 		}
 		s.recordSendAttempt(notificationSendAttempt{
 			eventType: scene,

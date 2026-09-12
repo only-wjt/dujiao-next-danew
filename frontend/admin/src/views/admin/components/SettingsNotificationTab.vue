@@ -50,12 +50,14 @@ interface NotificationData {
   scenes: {
     wallet_recharge_success: boolean
     order_paid_success: boolean
+    invoice_requested: boolean
     manual_fulfillment_pending: boolean
     exception_alert: boolean
   }
   templates: {
     wallet_recharge_success: NotificationSceneTemplate
     order_paid_success: NotificationSceneTemplate
+    invoice_requested: NotificationSceneTemplate
     manual_fulfillment_pending: NotificationSceneTemplate
     exception_alert: NotificationSceneTemplate
   }
@@ -123,12 +125,14 @@ const form = reactive({
   scenes: {
     wallet_recharge_success: true,
     order_paid_success: true,
+    invoice_requested: true,
     manual_fulfillment_pending: true,
     exception_alert: true,
   },
   templates: {
     wallet_recharge_success: createNotificationSceneTemplate(),
     order_paid_success: createNotificationSceneTemplate(),
+    invoice_requested: createNotificationSceneTemplate(),
     manual_fulfillment_pending: createNotificationSceneTemplate(),
     exception_alert: createNotificationSceneTemplate(),
   },
@@ -144,7 +148,7 @@ const syncFromProps = () => {
   form.channels.email.enabled = props.data.channels.email.enabled
   form.channels.email.recipients_text = props.data.channels.email.recipients_text
   form.channels.telegram.enabled = props.data.channels.telegram.enabled
-  form.channels.telegram.bot_token = ''
+  form.channels.telegram.bot_token = form.channels.telegram.bot_token.trim()
   form.channels.telegram.has_bot_token = props.data.channels.telegram.has_bot_token
   form.channels.telegram.recipients_text = props.data.channels.telegram.recipients_text
   form.channels.feishu.enabled = props.data.channels.feishu.enabled
@@ -156,6 +160,7 @@ const syncFromProps = () => {
   Object.assign(form.scenes, props.data.scenes)
   form.templates.wallet_recharge_success = deepCloneTemplate(props.data.templates.wallet_recharge_success)
   form.templates.order_paid_success = deepCloneTemplate(props.data.templates.order_paid_success)
+  form.templates.invoice_requested = deepCloneTemplate(props.data.templates.invoice_requested)
   form.templates.manual_fulfillment_pending = deepCloneTemplate(props.data.templates.manual_fulfillment_pending)
   form.templates.exception_alert = deepCloneTemplate(props.data.templates.exception_alert)
 }
@@ -285,7 +290,7 @@ const save = async () => {
         },
         telegram: {
           enabled: form.channels.telegram.enabled,
-          bot_token: form.channels.telegram.bot_token.trim(),
+          bot_token: readTelegramBotToken(),
           recipients: splitRecipients(form.channels.telegram.recipients_text),
         },
         feishu: {
@@ -299,6 +304,7 @@ const save = async () => {
       scenes: {
         wallet_recharge_success: form.scenes.wallet_recharge_success,
         order_paid_success: form.scenes.order_paid_success,
+        invoice_requested: form.scenes.invoice_requested,
         manual_fulfillment_pending: form.scenes.manual_fulfillment_pending,
         exception_alert: form.scenes.exception_alert,
       },
@@ -314,7 +320,18 @@ const save = async () => {
   }
 }
 
-defineExpose({ save, submitting })
+const telegramBotTokenInput = ref<{ $el?: HTMLInputElement } | null>(null)
+
+const readTelegramBotToken = () => {
+  const fromModel = String(form.channels.telegram.bot_token || '').trim()
+  if (fromModel) return fromModel
+  const el = telegramBotTokenInput.value?.$el
+  return String(el?.value || '').trim()
+}
+
+const telegramBotToken = () => readTelegramBotToken()
+
+defineExpose({ save, submitting, telegramBotToken })
 </script>
 
 <template>
@@ -453,6 +470,7 @@ defineExpose({ save, submitting })
               <div class="space-y-2">
                 <label class="text-xs font-medium text-muted-foreground">{{ t('admin.settings.notification.channels.telegram.botToken') }}</label>
                 <Input
+                  ref="telegramBotTokenInput"
                   v-model="form.channels.telegram.bot_token"
                   type="password"
                   autocomplete="off"
@@ -550,6 +568,10 @@ defineExpose({ save, submitting })
               <Label class="text-sm">{{ t('admin.settings.notification.scenes.orderPaidSuccess') }}</Label>
             </div>
             <div class="flex items-center gap-2 text-sm">
+              <Switch v-model="form.scenes.invoice_requested" />
+              <Label class="text-sm">{{ t('admin.settings.notification.scenes.invoiceRequested') }}</Label>
+            </div>
+            <div class="flex items-center gap-2 text-sm">
               <Switch v-model="form.scenes.manual_fulfillment_pending" />
               <Label class="text-sm">{{ t('admin.settings.notification.scenes.manualFulfillmentPending') }}</Label>
             </div>
@@ -580,6 +602,14 @@ defineExpose({ save, submitting })
               <div class="mt-3 space-y-2">
                 <Input v-model="form.templates.order_paid_success[currentLang].title" :placeholder="t('admin.settings.notification.templates.titlePlaceholder')" />
                 <Textarea v-model="form.templates.order_paid_success[currentLang].body" rows="4" :placeholder="t('admin.settings.notification.templates.bodyPlaceholder')" />
+              </div>
+            </div>
+
+            <div class="rounded-lg border border-border bg-muted/10 p-4">
+              <h4 class="text-sm font-medium">{{ t('admin.settings.notification.scenes.invoiceRequested') }}</h4>
+              <div class="mt-3 space-y-2">
+                <Input v-model="form.templates.invoice_requested[currentLang].title" :placeholder="t('admin.settings.notification.templates.titlePlaceholder')" />
+                <Textarea v-model="form.templates.invoice_requested[currentLang].body" rows="4" :placeholder="t('admin.settings.notification.templates.bodyPlaceholder')" />
               </div>
             </div>
 

@@ -97,6 +97,21 @@ func TestServiceSendMessageFallsBackToDefaultWithoutSettings(t *testing.T) {
 	}
 }
 
+func TestServiceSendMessageWithBotTokenUsesExplicitToken(t *testing.T) {
+	sender := &senderStub{}
+	service := NewService(&settingReaderStub{}, config.TelegramAuthConfig{}, sender)
+
+	if err := service.SendMessageWithBotToken(context.Background(), "  form-token  ", "10001", "hello"); err != nil {
+		t.Fatalf("send with form token failed: %v", err)
+	}
+	if sender.calls != 1 || sender.token != "form-token" {
+		t.Fatalf("unexpected sender call: calls=%d token=%q", sender.calls, sender.token)
+	}
+	if sender.options.ChatID != "10001" || sender.options.Message != "hello" {
+		t.Fatalf("unexpected send options: %#v", sender.options)
+	}
+}
+
 func TestServiceSendMessageRejectsMissingBotToken(t *testing.T) {
 	sender := &senderStub{}
 	service := NewService(&settingReaderStub{}, config.TelegramAuthConfig{}, sender)

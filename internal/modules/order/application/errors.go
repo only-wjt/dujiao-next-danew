@@ -10,6 +10,8 @@ import (
 
 var (
 	ErrInvalidEmail               = errors.New("invalid email")
+	ErrInvoiceTitleRequired       = errors.New("invoice title required")
+	ErrInvoiceEmailRequired       = errors.New("invoice email required")
 	ErrInvalidOrderItem           = productdomain.ErrPurchaseQuantityInvalid
 	ErrInvalidOrderAmount         = errors.New("invalid order amount")
 	ErrOrderCurrencyMismatch      = errors.New("order currency mismatch")

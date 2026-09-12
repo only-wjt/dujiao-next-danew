@@ -2,6 +2,7 @@ package settingsmessaging
 
 import (
 	"reflect"
+	"strings"
 	"testing"
 
 	settingsvalue "github.com/dujiao-next/internal/modules/settings/schema/value"
@@ -60,5 +61,18 @@ func TestNotificationCenterTelegramMaskAndPersistenceRoundTrip(t *testing.T) {
 	}
 	if telegram["has_bot_token"] != true {
 		t.Fatalf("admin response must expose configured state: %#v", telegram["has_bot_token"])
+	}
+}
+
+func TestNotificationCenterDefaultIncludesInvoiceRequested(t *testing.T) {
+	setting := NotificationCenterDefaultSetting()
+	if !setting.Scenes.InvoiceRequested {
+		t.Fatal("invoice requested scene should be enabled by default")
+	}
+	if strings.TrimSpace(setting.Templates.InvoiceRequested.ZHCN.Title) == "" {
+		t.Fatal("invoice requested template must have a default title")
+	}
+	if !setting.Scenes.IsSceneEnabled("invoice_requested") {
+		t.Fatal("invoice requested scene must be recognized")
 	}
 }

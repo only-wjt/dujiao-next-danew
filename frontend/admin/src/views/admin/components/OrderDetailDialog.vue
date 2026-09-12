@@ -771,6 +771,12 @@ watch(
                   <div class="text-foreground font-mono mt-1">{{ formatMoney(selectedOrder.total_amount, selectedOrder.currency) }}</div>
                 </CardContent>
               </Card>
+              <Card v-if="hasPositiveAmount(selectedOrder.invoice_fee_amount)" class="min-w-0 rounded-lg border-border bg-background shadow-none">
+                <CardContent class="p-3">
+                  <div class="text-xs text-muted-foreground">{{ t('orderDetail.invoiceFee') }}</div>
+                  <div class="text-foreground font-mono mt-1">{{ formatMoney(selectedOrder.invoice_fee_amount, selectedOrder.currency) }}</div>
+                </CardContent>
+              </Card>
               <Card v-if="hasPositiveAmount(selectedOrder.wallet_paid_amount)" class="min-w-0 rounded-lg border-border bg-background shadow-none">
                 <CardContent class="p-3">
                   <div class="text-xs text-muted-foreground">{{ t('admin.orders.detailWalletPaid') }}</div>
@@ -793,6 +799,30 @@ watch(
                 <CardContent class="p-3">
                   <div class="text-xs text-muted-foreground">{{ t('admin.orders.detailPaymentMethod') }}</div>
                   <div class="text-foreground mt-1">{{ orderPaymentMethodLabel(selectedOrder) }}</div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+
+          <div v-if="selectedOrder.invoice_requested" class="rounded-xl border border-border bg-muted/20 p-4">
+            <h3 class="text-sm font-semibold text-foreground mb-3">{{ t('orderDetail.invoiceTitle') }}</h3>
+            <div class="grid grid-cols-1 gap-4 text-sm md:grid-cols-2 [&>*]:min-w-0">
+              <Card class="min-w-0 rounded-lg border-border bg-background shadow-none">
+                <CardContent class="p-3">
+                  <div class="text-xs text-muted-foreground">{{ t('orderDetail.invoiceName') }}</div>
+                  <div class="mt-1 break-all text-foreground">{{ selectedOrder.invoice_title || '-' }}</div>
+                </CardContent>
+              </Card>
+              <Card class="min-w-0 rounded-lg border-border bg-background shadow-none">
+                <CardContent class="p-3">
+                  <div class="text-xs text-muted-foreground">{{ t('orderDetail.invoiceEmail') }}</div>
+                  <div class="mt-1 break-all text-foreground">{{ selectedOrder.invoice_email || '-' }}</div>
+                </CardContent>
+              </Card>
+              <Card class="min-w-0 rounded-lg border-border bg-background shadow-none md:col-span-2">
+                <CardContent class="p-3">
+                  <div class="text-xs text-muted-foreground">{{ t('orderDetail.invoiceNote') }}</div>
+                  <div class="mt-1 whitespace-pre-wrap break-words text-foreground">{{ selectedOrder.invoice_note || '-' }}</div>
                 </CardContent>
               </Card>
             </div>

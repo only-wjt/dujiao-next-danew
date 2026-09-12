@@ -357,10 +357,14 @@ const (
 const (
 	NotificationEventWalletRechargeSuccess    = "wallet_recharge_success"
 	NotificationEventOrderPaidSuccess         = "order_paid_success"
+	NotificationEventInvoiceRequested         = "invoice_requested"
 	NotificationEventManualFulfillmentPending = "manual_fulfillment_pending"
 	NotificationEventExceptionAlert           = "exception_alert"
 	NotificationEventExceptionAlertCheck      = "exception_alert_check"
 )
+
+// 结账开票加价比例（应付金额的百分比）。
+const InvoiceFeePercent = 10
 
 // 通知中心渠道常量
 const (

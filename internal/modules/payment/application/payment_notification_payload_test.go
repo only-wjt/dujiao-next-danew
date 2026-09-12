@@ -141,6 +141,40 @@ func TestBuildOrderNotificationPayloadIncludesCustomerAndItemSummary(t *testing.
 	}
 }
 
+func TestBuildOrderNotificationPayloadIncludesInvoiceFields(t *testing.T) {
+	svc := &PaymentService{}
+	order := &orderdomain.Order{
+		ID:               2001,
+		OrderNo:          "DJ202609120001",
+		GuestEmail:       "buyer@example.com",
+		Currency:         "cny",
+		Status:           constants.OrderStatusPaid,
+		TotalAmount:      money.FromDecimal(decimal.NewFromInt(165)),
+		InvoiceRequested: true,
+		InvoiceTitle:     "上海某某科技有限公司",
+		InvoiceNote:      "备注可选",
+		InvoiceEmail:     "billing@example.com",
+		InvoiceFeeAmount: money.FromDecimal(decimal.NewFromInt(15)),
+	}
+
+	payload := svc.buildOrderNotificationPayload(order, nil)
+	if got := fmt.Sprintf("%v", payload["invoice_requested"]); got != "true" {
+		t.Fatalf("invoice_requested want true got %s", got)
+	}
+	if got := fmt.Sprintf("%v", payload["invoice_title"]); got != "上海某某科技有限公司" {
+		t.Fatalf("invoice_title mismatch: %s", got)
+	}
+	if got := fmt.Sprintf("%v", payload["invoice_email"]); got != "billing@example.com" {
+		t.Fatalf("invoice_email mismatch: %s", got)
+	}
+	if got := fmt.Sprintf("%v", payload["invoice_note"]); got != "备注可选" {
+		t.Fatalf("invoice_note mismatch: %s", got)
+	}
+	if got := fmt.Sprintf("%v", payload["amount"]); got != "165" && got != "165.00" {
+		t.Fatalf("amount should include invoice fee, got %s", got)
+	}
+}
+
 func TestBuildOrderNotificationPayloadUsesDisplayChannelType(t *testing.T) {
 	svc := &PaymentService{}
 	order := &orderdomain.Order{

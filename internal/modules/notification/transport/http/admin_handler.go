@@ -78,6 +78,7 @@ type NotificationCenterTestSendRequest struct {
 	Target    string                 `json:"target" binding:"required"`
 	Scene     string                 `json:"scene"`
 	Locale    string                 `json:"locale"`
+	BotToken  string                 `json:"bot_token"`
 	Variables map[string]interface{} `json:"variables"`
 }
 
@@ -134,11 +135,23 @@ func (h *AdminHandler) TestNotificationCenterSettings(c *gin.Context) {
 		return
 	}
 
+	botToken := strings.TrimSpace(req.BotToken)
+	if channel == constants.NotificationChannelTelegram && botToken != "" && h.settings != nil {
+		_, _ = h.settings.PatchNotificationCenterSetting(settingsmessaging.NotificationCenterSettingPatch{
+			Channels: &settingsmessaging.NotificationChannelsPatch{
+				Telegram: &settingsmessaging.NotificationChannelPatch{
+					BotToken: &botToken,
+				},
+			},
+		})
+	}
+
 	err := h.sender.SendTest(c.Request.Context(), contract.TestSendInput{
 		Channel:   channel,
 		Target:    strings.TrimSpace(req.Target),
 		Scene:     strings.TrimSpace(req.Scene),
 		Locale:    strings.TrimSpace(req.Locale),
+		BotToken:  botToken,
 		Variables: req.Variables,
 	})
 	if err != nil {

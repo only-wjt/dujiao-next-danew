@@ -46,6 +46,11 @@ func (s *PaymentService) buildOrderNotificationPayload(order *orderdomain.Order,
 		"manual_item_count":         fmt.Sprintf("%d", counts.Manual),
 		"upstream_item_count":       fmt.Sprintf("%d", counts.Upstream),
 		"payment_channel":           paymentChannel,
+		"invoice_requested":         order.InvoiceRequested,
+		"invoice_title":             strings.TrimSpace(order.InvoiceTitle),
+		"invoice_note":              strings.TrimSpace(order.InvoiceNote),
+		"invoice_email":             strings.TrimSpace(order.InvoiceEmail),
+		"invoice_fee_amount":        order.InvoiceFeeAmount.String(),
 	}
 	if payment != nil {
 		payload["payment_id"] = fmt.Sprintf("%d", payment.ID)

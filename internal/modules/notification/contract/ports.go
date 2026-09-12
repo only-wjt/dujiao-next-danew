@@ -53,6 +53,7 @@ type DashboardAlertReader interface {
 
 type TelegramSender interface {
 	SendMessage(ctx context.Context, chatID, message string) error
+	SendMessageWithBotToken(ctx context.Context, botToken, chatID, message string) error
 }
 
 type FeishuSender interface {
@@ -95,6 +96,7 @@ type TestSendInput struct {
 	Target    string
 	Scene     string
 	Locale    string
+	BotToken  string
 	Variables map[string]interface{}
 }
 

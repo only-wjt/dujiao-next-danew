@@ -37,6 +37,8 @@ var (
 	ErrProductNotAvailable       = errors.New("product not available")
 	ErrResellerCouponNotAllowed  = errors.New("reseller coupon not allowed")
 	ErrQueueUnavailable          = errors.New("queue unavailable")
+	ErrInvoiceTitleRequired      = errors.New("invoice title required")
+	ErrInvoiceEmailRequired      = errors.New("invoice email required")
 	ErrRiskIPBlacklisted         = errors.New("risk: ip blacklisted")
 	ErrRiskClientIPUnavailable   = errors.New("risk: client ip unavailable")
 	ErrRiskTooManyPendingOrders  = errors.New("risk: too many pending orders")
@@ -90,6 +92,10 @@ type CreateOrderRequest struct {
 	AffiliateCode       string                  `json:"affiliate_code"`
 	AffiliateVisitorKey string                  `json:"affiliate_visitor_key"`
 	ManualFormData      map[string]jsonmap.JSON `json:"manual_form_data"`
+	InvoiceRequested    bool                    `json:"invoice_requested"`
+	InvoiceTitle        string                  `json:"invoice_title"`
+	InvoiceNote         string                  `json:"invoice_note"`
+	InvoiceEmail        string                  `json:"invoice_email"`
 }
 
 // CreateGuestOrderRequest 游客订单预览请求体。
@@ -102,6 +108,10 @@ type CreateGuestOrderRequest struct {
 	AffiliateVisitorKey string                            `json:"affiliate_visitor_key"`
 	ManualFormData      map[string]jsonmap.JSON           `json:"manual_form_data"`
 	CaptchaPayload      captchahttp.CaptchaPayloadRequest `json:"captcha_payload"`
+	InvoiceRequested    bool                              `json:"invoice_requested"`
+	InvoiceTitle        string                            `json:"invoice_title"`
+	InvoiceNote         string                            `json:"invoice_note"`
+	InvoiceEmail        string                            `json:"invoice_email"`
 }
 
 // CreateOrderItem 创建/预览订单项。
@@ -122,6 +132,10 @@ type CreateOrderInput struct {
 	AffiliateVisitorKey string
 	ClientIP            string
 	ManualFormData      map[string]jsonmap.JSON
+	InvoiceRequested    bool
+	InvoiceTitle        string
+	InvoiceNote         string
+	InvoiceEmail        string
 }
 
 // CreateGuestOrderInput 游客订单预览输入。
@@ -136,6 +150,10 @@ type CreateGuestOrderInput struct {
 	AffiliateVisitorKey string
 	ClientIP            string
 	ManualFormData      map[string]jsonmap.JSON
+	InvoiceRequested    bool
+	InvoiceTitle        string
+	InvoiceNote         string
+	InvoiceEmail        string
 }
 
 // OrderPreview 订单金额预览。
@@ -147,6 +165,8 @@ type OrderPreview struct {
 	PromotionDiscountAmount money.Amount       `json:"promotion_discount_amount"`
 	WholesaleDiscountAmount money.Amount       `json:"wholesale_discount_amount"`
 	TotalAmount             money.Amount       `json:"total_amount"`
+	InvoiceRequested        bool               `json:"invoice_requested"`
+	InvoiceFeeAmount        money.Amount       `json:"invoice_fee_amount"`
 	Items                   []OrderPreviewItem `json:"items"`
 }
 
@@ -209,6 +229,10 @@ func (h *PreviewHandler) PreviewOrder(c *gin.Context) {
 		AffiliateVisitorKey: req.AffiliateVisitorKey,
 		ClientIP:            c.ClientIP(),
 		ManualFormData:      req.ManualFormData,
+		InvoiceRequested:    req.InvoiceRequested,
+		InvoiceTitle:        req.InvoiceTitle,
+		InvoiceNote:         req.InvoiceNote,
+		InvoiceEmail:        req.InvoiceEmail,
 	})
 	if err != nil {
 		respondUserOrderPreviewError(c, err)
@@ -236,6 +260,10 @@ func (h *PreviewHandler) PreviewGuestOrder(c *gin.Context) {
 		AffiliateVisitorKey: req.AffiliateVisitorKey,
 		ClientIP:            c.ClientIP(),
 		ManualFormData:      req.ManualFormData,
+		InvoiceRequested:    req.InvoiceRequested,
+		InvoiceTitle:        req.InvoiceTitle,
+		InvoiceNote:         req.InvoiceNote,
+		InvoiceEmail:        req.InvoiceEmail,
 	})
 	if err != nil {
 		respondGuestOrderPreviewError(c, err)
@@ -335,6 +363,9 @@ var userOrderCommonErrorRules = []mappedError{
 	{target: productcontract.ErrProductSKUInvalid, code: response.CodeBadRequest, key: "error.order_item_invalid"},
 	{target: productdomain.ErrPurchaseQuantityInvalid, code: response.CodeBadRequest, key: "error.order_item_invalid"},
 	{target: ErrInvalidOrderAmount, code: response.CodeBadRequest, key: "error.order_amount_invalid"},
+	{target: ErrInvalidEmail, code: response.CodeBadRequest, key: "error.email_invalid"},
+	{target: ErrInvoiceTitleRequired, code: response.CodeBadRequest, key: "error.invoice_title_required"},
+	{target: ErrInvoiceEmailRequired, code: response.CodeBadRequest, key: "error.invoice_email_required"},
 	{target: ErrProductPurchaseNotAllowed, code: response.CodeBadRequest, key: "error.product_purchase_not_allowed"},
 	{target: productdomain.ErrMaxPurchaseExceeded, code: response.CodeBadRequest, key: "error.product_max_purchase_exceeded"},
 	{target: productdomain.ErrMinPurchaseNotMet, code: response.CodeBadRequest, key: "error.product_min_purchase_not_met"},
@@ -380,6 +411,8 @@ var guestOrderCommonErrorRules = []mappedError{
 	{target: ErrGuestEmailRequired, code: response.CodeBadRequest, key: "error.guest_email_required"},
 	{target: ErrGuestPasswordRequired, code: response.CodeBadRequest, key: "error.guest_password_required"},
 	{target: ErrInvalidEmail, code: response.CodeBadRequest, key: "error.email_invalid"},
+	{target: ErrInvoiceTitleRequired, code: response.CodeBadRequest, key: "error.invoice_title_required"},
+	{target: ErrInvoiceEmailRequired, code: response.CodeBadRequest, key: "error.invoice_email_required"},
 	{target: ErrProductPurchaseNotAllowed, code: response.CodeBadRequest, key: "error.product_purchase_not_allowed"},
 	{target: productdomain.ErrMaxPurchaseExceeded, code: response.CodeBadRequest, key: "error.product_max_purchase_exceeded"},
 	{target: productdomain.ErrMinPurchaseNotMet, code: response.CodeBadRequest, key: "error.product_min_purchase_not_met"},
