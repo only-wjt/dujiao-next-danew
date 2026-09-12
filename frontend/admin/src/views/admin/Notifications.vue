@@ -57,6 +57,8 @@ const notificationData = reactive({
     },
     telegram: {
       enabled: false,
+      bot_token: '',
+      has_bot_token: false,
       recipients_text: '',
     },
     feishu: {
@@ -189,6 +191,8 @@ const fetchSettings = async () => {
     notificationData.channels.email.enabled = !!notifEmail?.enabled
     notificationData.channels.email.recipients_text = joinRecipients(notifEmail?.recipients)
     notificationData.channels.telegram.enabled = !!notifTelegram?.enabled
+    notificationData.channels.telegram.bot_token = ''
+    notificationData.channels.telegram.has_bot_token = !!notifTelegram?.has_bot_token
     notificationData.channels.telegram.recipients_text = joinRecipients(notifTelegram?.recipients)
     notificationData.channels.feishu.enabled = !!notifFeishu?.enabled
     notificationData.channels.feishu.app_id = String(notifFeishu?.app_id || '')
@@ -313,7 +317,12 @@ const sendNotificationTest = async () => {
     notifySuccess(t('admin.settings.notification.test.success'))
     await fetchNotificationLogs(1)
   } catch (err: any) {
-    notifyError(err?.response?.data?.message || t('admin.settings.notification.test.failed'))
+    const message = String(err?.response?.data?.message || '')
+    if (testForm.channel === 'telegram' && /bot token|config invalid/i.test(message)) {
+      notifyError(t('admin.settings.notification.test.tokenRequired'))
+    } else {
+      notifyError(message || t('admin.settings.notification.test.failed'))
+    }
   } finally {
     notificationTesting.value = false
   }

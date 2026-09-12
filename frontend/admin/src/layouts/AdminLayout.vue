@@ -57,6 +57,7 @@ import { useAdminAuthStore } from '@/stores/auth'
 import { useI18n } from 'vue-i18n'
 import { adminAPI } from '@/api/admin'
 import { applySiteIcon } from '@/utils/favicon'
+import { applyAdminAppearance } from '@/utils/appearance'
 import { adminUrl } from '@/utils/adminBase'
 
 interface NavGroupItem {
@@ -723,6 +724,7 @@ onMounted(() => {
   // Fetch app version and site URL
   adminAPI.getPublicConfig().then((res) => {
     const payload = res.data?.data
+    applyAdminAppearance(payload?.storefront_template)
     applySiteIcon(payload?.brand?.site_icon)
     const ver = payload?.app_version
     if (typeof ver === 'string') {

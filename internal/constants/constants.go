@@ -528,10 +528,29 @@ const (
 
 // 店面模板常量（站长全局选择的用户前台模板）
 const (
-	StorefrontTemplateClassic = "classic"
-	StorefrontTemplateVault   = "vault"
-	StorefrontTemplateDefault = StorefrontTemplateClassic
+	StorefrontTemplateClassic  = "classic"
+	StorefrontTemplateVault    = "vault"
+	StorefrontTemplateInkstone = "inkstone"
+	StorefrontTemplateNocturne = "nocturne"
+	StorefrontTemplateCeladon  = "celadon"
+	StorefrontTemplateEmber    = "ember"
+	StorefrontTemplateDefault  = StorefrontTemplateClassic
 )
+
+// IsStorefrontTemplate 判断是否为已注册的店面模板。未知值必须回退默认，不能静默丢弃成空字符串。
+func IsStorefrontTemplate(value string) bool {
+	switch value {
+	case StorefrontTemplateClassic,
+		StorefrontTemplateVault,
+		StorefrontTemplateInkstone,
+		StorefrontTemplateNocturne,
+		StorefrontTemplateCeladon,
+		StorefrontTemplateEmber:
+		return true
+	default:
+		return false
+	}
+}
 
 // 站点语言常量
 const (

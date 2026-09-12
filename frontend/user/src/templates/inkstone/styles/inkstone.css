@@ -1,0 +1,169 @@
+/* =========================================================================
+   inkstone 模板设计令牌（墨金）
+   方向: 宣纸底 · 墨色字 · 朱砂强调 · 细金线 · 偏方角
+   作用域: .inkstone-scope / body.inkstone-tokens，不影响 classic / vault。
+   ========================================================================= */
+
+.inkstone-scope,
+body.inkstone-tokens {
+  --font-head: "Songti SC", "STSong", "Noto Serif SC", "Source Han Serif SC", "PMingLiU", Georgia, "Times New Roman", serif;
+  --font-body: "PingFang SC", "Hiragino Sans GB", "Noto Sans SC", "Microsoft YaHei", system-ui, sans-serif;
+
+  --bg: #f3eee4;
+  --bg-warm: #e8dfd0;
+  --surface: #fbf7ef;
+  --surface-2: #efe6d8;
+  --ink: #1f1a16;
+  --ink-2: #4a433b;
+  --ink-3: #7a7166;
+  --border: #d8cbb6;
+  --border-strong: #b89f78;
+
+  --red: #b23a2e;
+  --red-strong: #8f2c23;
+  --red-soft: #f3ddd6;
+  --gold: #b0893a;
+  --gold-strong: #8b6a26;
+  --gold-soft: #f3e6c8;
+  --teal: #3f6b5c;
+  --teal-strong: #2d4f44;
+  --teal-soft: #d7e6df;
+  --plum: #7a3e4a;
+  --plum-soft: #eddde0;
+
+  --on-red: #fff8f1;
+  --on-gold: #1f1a16;
+  --on-teal: #f7f3ea;
+
+  --success: #3f6b5c;
+  --warning: #9a6b1f;
+  --danger: #b23a2e;
+
+  --r-sm: 4px;
+  --r: 8px;
+  --r-lg: 10px;
+  --r-xl: 14px;
+  --r-pill: 4px;
+
+  --shadow-sm: 0 1px 0 rgba(31, 26, 22, 0.06);
+  --shadow: 0 10px 24px -20px rgba(31, 26, 22, 0.35);
+  --shadow-lg: 0 18px 36px -24px rgba(31, 26, 22, 0.4);
+  --ring: 0 0 0 3px rgba(178, 58, 46, 0.18);
+
+  --gap-block: 52px;
+  --ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+
+  --ui-bg-page: var(--bg);
+  --ui-bg-elevated: var(--surface);
+  --ui-bg-soft: var(--surface-2);
+  --ui-bg-muted: var(--bg-warm);
+  --ui-bg-overlay: color-mix(in srgb, var(--surface) 82%, transparent);
+  --ui-bg-overlay-strong: color-mix(in srgb, var(--surface) 94%, transparent);
+  --ui-text-primary: var(--ink);
+  --ui-text-secondary: var(--ink-2);
+  --ui-text-muted: var(--ink-3);
+  --ui-text-on-accent: var(--on-red);
+  --ui-border: var(--border);
+  --ui-border-strong: var(--border-strong);
+  --ui-accent: var(--red);
+  --ui-accent-hover: var(--red-strong);
+  --ui-accent-soft: var(--red-soft);
+  --ui-accent-warm: var(--gold);
+  --ui-accent-warm-hover: var(--gold-strong);
+  --ui-accent-warm-soft: var(--gold-soft);
+  --ui-success: var(--success);
+  --ui-success-soft: var(--teal-soft);
+  --ui-warning: var(--warning);
+  --ui-warning-soft: var(--gold-soft);
+  --ui-danger: var(--danger);
+  --ui-danger-soft: var(--red-soft);
+  --ui-info: var(--teal);
+  --ui-info-soft: var(--teal-soft);
+  --ui-focus-ring: var(--ring);
+  --ui-radius-sm: var(--r-sm);
+  --ui-radius-md: var(--r);
+  --ui-radius-lg: var(--r-lg);
+  --ui-radius-xl: var(--r-xl);
+  --ui-shadow-soft: var(--shadow);
+  --ui-shadow-card: var(--shadow-lg);
+}
+
+.inkstone-scope {
+  background:
+    linear-gradient(180deg, rgba(176, 137, 58, 0.08), transparent 140px),
+    var(--bg);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.dark .inkstone-scope,
+.dark body.inkstone-tokens {
+  --bg: #161310;
+  --bg-warm: #1e1a16;
+  --surface: #201c18;
+  --surface-2: #2a241e;
+  --ink: #f3ebe0;
+  --ink-2: #c8bbaa;
+  --ink-3: #8f8476;
+  --border: #3a3229;
+  --border-strong: #6d5a3c;
+
+  --red: #d26555;
+  --red-strong: #e08474;
+  --red-soft: #3a221e;
+  --gold: #d4b36a;
+  --gold-strong: #e4c888;
+  --gold-soft: #352a16;
+  --teal: #6f9a88;
+  --teal-strong: #8fb3a4;
+  --teal-soft: #1c2b25;
+  --plum: #c48892;
+  --plum-soft: #322024;
+
+  --on-red: #fff8f1;
+  --on-gold: #1f1a16;
+  --on-teal: #101613;
+
+  --shadow-sm: 0 1px 0 rgba(0, 0, 0, 0.35);
+  --shadow: 0 14px 28px -20px rgba(0, 0, 0, 0.55);
+  --shadow-lg: 0 22px 40px -22px rgba(0, 0, 0, 0.62);
+  --ring: 0 0 0 3px rgba(210, 101, 85, 0.28);
+}
+
+@layer base {
+  .inkstone-scope h1,
+  .inkstone-scope h2,
+  .inkstone-scope h3,
+  .inkstone-scope h4 {
+    font-family: var(--font-head);
+    font-weight: 700;
+    line-height: 1.15;
+    margin: 0;
+    letter-spacing: 0.01em;
+    color: var(--ink);
+  }
+  .inkstone-scope p { margin: 0; }
+  .inkstone-scope a { color: inherit; text-decoration: none; }
+  .inkstone-scope img,
+  .inkstone-scope svg { display: block; max-width: 100%; }
+  .inkstone-scope button { font-family: inherit; cursor: pointer; }
+  .inkstone-scope ul { margin: 0; }
+  .inkstone-scope :focus-visible { outline: 2px solid var(--red); outline-offset: 2px; }
+  .inkstone-scope ::selection { background: var(--gold-soft); color: var(--ink); }
+}
+
+@media (max-width: 900px) {
+  .inkstone-scope { --gap-block: 40px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .inkstone-scope *,
+  .inkstone-scope *::before,
+  .inkstone-scope *::after { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
+}

@@ -6,14 +6,21 @@ import (
 	"testing"
 
 	"github.com/dujiao-next/internal/config"
+	settingsmessaging "github.com/dujiao-next/internal/modules/settings/schema/messaging"
 	settingssecurity "github.com/dujiao-next/internal/modules/settings/schema/security"
 	notifycontract "github.com/dujiao-next/internal/modules/telegram/notify/contract"
 )
 
 type settingReaderStub struct {
-	setting settingssecurity.TelegramAuthSetting
-	err     error
-	seen    config.TelegramAuthConfig
+	notifySetting settingsmessaging.NotificationCenterSetting
+	notifyErr     error
+	setting       settingssecurity.TelegramAuthSetting
+	err           error
+	seen          config.TelegramAuthConfig
+}
+
+func (s *settingReaderStub) GetNotificationCenterSetting() (settingsmessaging.NotificationCenterSetting, error) {
+	return s.notifySetting, s.notifyErr
 }
 
 func (s *settingReaderStub) GetTelegramAuthSetting(defaultCfg config.TelegramAuthConfig) (settingssecurity.TelegramAuthSetting, error) {
@@ -33,6 +40,24 @@ func (s *senderStub) SendWithBotToken(_ context.Context, token string, options n
 	s.token = token
 	s.options = options
 	return s.err
+}
+
+func TestServiceSendMessagePrefersNotificationCenterBotToken(t *testing.T) {
+	notifySetting := settingsmessaging.NotificationCenterDefaultSetting()
+	notifySetting.Channels.Telegram.BotToken = "  notify-token  "
+	settings := &settingReaderStub{
+		notifySetting: notifySetting,
+		setting:       settingssecurity.TelegramAuthSetting{BotToken: "login-token"},
+	}
+	sender := &senderStub{}
+	service := NewService(settings, config.TelegramAuthConfig{BotToken: "default-token"}, sender)
+
+	if err := service.SendMessage(context.Background(), "10001", "hello"); err != nil {
+		t.Fatalf("send message failed: %v", err)
+	}
+	if sender.calls != 1 || sender.token != "notify-token" {
+		t.Fatalf("unexpected sender call: calls=%d token=%q", sender.calls, sender.token)
+	}
 }
 
 func TestServiceSendMessageUsesDynamicBotToken(t *testing.T) {

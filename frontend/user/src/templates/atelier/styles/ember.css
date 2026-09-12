@@ -1,0 +1,91 @@
+/* =========================================================================
+   ember 模板设计令牌（烬铜）
+   方向: 木炭灰底 · 铜火强调 · 偏方角
+   作用域: .ember-scope / body.ember-tokens，不影响 classic / vault / 其他主题。
+   ========================================================================= */
+
+.ember-scope,
+body.ember-tokens {
+  --font-head: "Source Han Serif SC", "Noto Serif SC", "Songti SC", Georgia, "Times New Roman", serif;
+  --font-body: "PingFang SC", "Hiragino Sans GB", "Noto Sans SC", "Microsoft YaHei", system-ui, sans-serif;
+
+  --bg: #f3eee8;
+  --bg-warm: #e8dfd4;
+  --surface: #faf6f1;
+  --surface-2: #eee4d8;
+  --ink: #241c18;
+  --ink-2: #5a4a40;
+  --ink-3: #8a7668;
+  --border: #d8c8b6;
+  --border-strong: #b08968;
+
+  --red: #b85c38;
+  --red-strong: #93472a;
+  --red-soft: #f3ddd0;
+  --gold: #c4893a;
+  --gold-strong: #9a6a28;
+  --gold-soft: #f3e4c4;
+  --teal: #5a6b4a;
+  --teal-strong: #445236;
+  --teal-soft: #dce4d4;
+  --plum: #7a4038;
+  --plum-soft: #edd8d4;
+
+  --on-red: #fff8f1;
+  --on-gold: #241c18;
+  --on-teal: #faf6f1;
+
+  --success: #5a6b4a;
+  --warning: #9a6a28;
+  --danger: #b85c38;
+
+  --r-sm: 2px;
+  --r: 6px;
+  --r-lg: 8px;
+  --r-xl: 10px;
+  --r-pill: 2px;
+
+  --shadow-sm: 0 1px 0 rgba(36, 28, 24, 0.06);
+  --shadow: 0 10px 24px -20px rgba(36, 28, 24, 0.38);
+  --shadow-lg: 0 18px 36px -24px rgba(36, 28, 24, 0.44);
+  --ring: 0 0 0 3px rgba(184, 92, 56, 0.2);
+
+  --gap-block: 52px;
+  --ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+  --wash: rgba(184, 92, 56, 0.12);
+}
+
+.dark .ember-scope,
+.dark body.ember-tokens {
+  --bg: #161210;
+  --bg-warm: #1e1814;
+  --surface: #201a16;
+  --surface-2: #2c241e;
+  --ink: #f3ebe2;
+  --ink-2: #c8b4a4;
+  --ink-3: #8f7e70;
+  --border: #3a3028;
+  --border-strong: #6d4e36;
+
+  --red: #d4784a;
+  --red-strong: #e09068;
+  --red-soft: #3a2418;
+  --gold: #d4a05a;
+  --gold-strong: #e4b878;
+  --gold-soft: #322414;
+  --teal: #8aa078;
+  --teal-strong: #a4b890;
+  --teal-soft: #1e2618;
+  --plum: #c48880;
+  --plum-soft: #32201c;
+
+  --on-red: #fff8f1;
+  --on-gold: #161210;
+  --on-teal: #161210;
+
+  --shadow-sm: 0 1px 0 rgba(0, 0, 0, 0.35);
+  --shadow: 0 14px 28px -20px rgba(0, 0, 0, 0.55);
+  --shadow-lg: 0 22px 40px -22px rgba(0, 0, 0, 0.62);
+  --ring: 0 0 0 3px rgba(212, 120, 74, 0.28);
+  --wash: rgba(212, 120, 74, 0.1);
+}

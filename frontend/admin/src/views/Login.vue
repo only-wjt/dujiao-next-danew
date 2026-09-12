@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label'
 import { useAdminAuthStore } from '@/stores/auth'
 import { adminAPI, type CaptchaPayload } from '@/api/admin'
 import { applySiteIcon } from '@/utils/favicon'
+import { applyAdminAppearance } from '@/utils/appearance'
 import ImageCaptcha from '@/components/captcha/ImageCaptcha.vue'
 import TurnstileCaptcha from '@/components/captcha/TurnstileCaptcha.vue'
 
@@ -163,6 +164,7 @@ const loadCaptchaConfig = async () => {
   try {
     const res = await adminAPI.getPublicConfig()
     const payload = res.data?.data as any
+    applyAdminAppearance(payload?.storefront_template)
     applySiteIcon(payload?.brand?.site_icon)
     captchaConfig.value = payload?.captcha || null
   } catch {

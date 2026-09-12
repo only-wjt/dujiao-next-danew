@@ -1,6 +1,8 @@
 package settingsapp
 
 import (
+	"fmt"
+	"strings"
 	"time"
 
 	"github.com/dujiao-next/internal/config"
@@ -117,10 +119,30 @@ func (s *Service) PatchNotificationCenterSetting(patch settingsmessaging.Notific
 	if err != nil {
 		return settingsmessaging.NotificationCenterSetting{}, err
 	}
+	if err := s.ensureTelegramNotifyToken(next); err != nil {
+		return settingsmessaging.NotificationCenterSetting{}, err
+	}
 	if _, err := s.Update(constants.SettingKeyNotificationCenterConfig, settingsmessaging.NotificationCenterSettingToMap(next)); err != nil {
 		return settingsmessaging.NotificationCenterSetting{}, err
 	}
 	return next, nil
+}
+
+func (s *Service) ensureTelegramNotifyToken(setting settingsmessaging.NotificationCenterSetting) error {
+	if !setting.Channels.Telegram.Enabled {
+		return nil
+	}
+	if strings.TrimSpace(setting.Channels.Telegram.BotToken) != "" {
+		return nil
+	}
+	auth, err := s.GetTelegramAuthSetting(config.TelegramAuthConfig{})
+	if err != nil {
+		return err
+	}
+	if strings.TrimSpace(auth.BotToken) != "" {
+		return nil
+	}
+	return fmt.Errorf("%w: Telegram 渠道已启用但未配置 Bot Token", settingsmessaging.ErrNotificationConfigInvalid)
 }
 
 // GetSMTPSetting 获取 SMTP 设置（优先 settings，空时回退默认配置）。

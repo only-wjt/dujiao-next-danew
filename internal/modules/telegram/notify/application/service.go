@@ -2,6 +2,7 @@ package application
 
 import (
 	"context"
+	"fmt"
 	"strings"
 
 	"github.com/dujiao-next/internal/config"
@@ -30,7 +31,7 @@ func (s *Service) SendMessage(ctx context.Context, chatID, message string) error
 		return err
 	}
 	if token == "" {
-		return notifycontract.ErrNotifyConfigInvalid
+		return fmt.Errorf("%w: Telegram Bot Token 未配置", notifycontract.ErrNotifyConfigInvalid)
 	}
 	return s.sender.SendWithBotToken(ctx, token, notifycontract.SendOptions{
 		ChatID:                chatID,
@@ -45,12 +46,21 @@ func (s *Service) SendWithBotToken(ctx context.Context, botToken string, options
 }
 
 func (s *Service) resolveBotToken() (string, error) {
-	if s.settings == nil {
-		return strings.TrimSpace(s.defaultCfg.BotToken), nil
+	if s.settings != nil {
+		notifySetting, err := s.settings.GetNotificationCenterSetting()
+		if err != nil {
+			return "", err
+		}
+		if token := strings.TrimSpace(notifySetting.Channels.Telegram.BotToken); token != "" {
+			return token, nil
+		}
+		authSetting, err := s.settings.GetTelegramAuthSetting(s.defaultCfg)
+		if err != nil {
+			return "", err
+		}
+		if token := strings.TrimSpace(authSetting.BotToken); token != "" {
+			return token, nil
+		}
 	}
-	setting, err := s.settings.GetTelegramAuthSetting(s.defaultCfg)
-	if err != nil {
-		return "", err
-	}
-	return strings.TrimSpace(setting.BotToken), nil
+	return strings.TrimSpace(s.defaultCfg.BotToken), nil
 }

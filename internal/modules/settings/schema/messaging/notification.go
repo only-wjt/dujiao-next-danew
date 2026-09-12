@@ -54,6 +54,7 @@ const (
 // NotificationChannelSetting 通知渠道配置
 type NotificationChannelSetting struct {
 	Enabled    bool     `json:"enabled"`
+	BotToken   string   `json:"bot_token,omitempty"`
 	Recipients []string `json:"recipients"`
 }
 
@@ -138,6 +139,7 @@ type NotificationChannelsPatch struct {
 // NotificationChannelPatch 通知渠道补丁
 type NotificationChannelPatch struct {
 	Enabled    *bool     `json:"enabled"`
+	BotToken   *string   `json:"bot_token"`
 	Recipients *[]string `json:"recipients"`
 }
 
@@ -274,6 +276,7 @@ func NotificationCenterDefaultSetting() NotificationCenterSetting {
 func NormalizeNotificationCenterSetting(setting NotificationCenterSetting) NotificationCenterSetting {
 	setting.DefaultLocale = NormalizeNotificationLocale(setting.DefaultLocale)
 	setting.Channels.Email.Recipients = normalizeEmailRecipients(setting.Channels.Email.Recipients)
+	setting.Channels.Telegram.BotToken = strings.TrimSpace(setting.Channels.Telegram.BotToken)
 	setting.Channels.Telegram.Recipients = normalizeTelegramRecipients(setting.Channels.Telegram.Recipients)
 	setting.Channels.Feishu.AppID = strings.TrimSpace(setting.Channels.Feishu.AppID)
 	setting.Channels.Feishu.AppSecret = strings.TrimSpace(setting.Channels.Feishu.AppSecret)
@@ -364,6 +367,7 @@ func NotificationCenterSettingToMap(setting NotificationCenterSetting) map[strin
 			},
 			"telegram": map[string]interface{}{
 				"enabled":    normalized.Channels.Telegram.Enabled,
+				"bot_token":  normalized.Channels.Telegram.BotToken,
 				"recipients": settingsvalue.CloneStringSlice(normalized.Channels.Telegram.Recipients),
 			},
 			"feishu": map[string]interface{}{
@@ -401,6 +405,11 @@ func MaskNotificationCenterSettingForAdmin(setting NotificationCenterSetting) js
 	channels := settingsvalue.ToStringAnyMap(result["channels"])
 	if channels == nil {
 		return result
+	}
+	if telegram := settingsvalue.ToStringAnyMap(channels["telegram"]); telegram != nil {
+		telegram["bot_token"] = ""
+		telegram["has_bot_token"] = normalized.Channels.Telegram.BotToken != ""
+		channels["telegram"] = telegram
 	}
 	feishu := settingsvalue.ToStringAnyMap(channels["feishu"])
 	if feishu == nil {
@@ -444,6 +453,11 @@ func ApplyNotificationCenterSettingPatch(current NotificationCenterSetting, patc
 		if patch.Channels.Telegram != nil {
 			if patch.Channels.Telegram.Enabled != nil {
 				next.Channels.Telegram.Enabled = *patch.Channels.Telegram.Enabled
+			}
+			if patch.Channels.Telegram.BotToken != nil {
+				if botToken := strings.TrimSpace(*patch.Channels.Telegram.BotToken); botToken != "" {
+					next.Channels.Telegram.BotToken = botToken
+				}
 			}
 			if patch.Channels.Telegram.Recipients != nil {
 				next.Channels.Telegram.Recipients = settingsvalue.CloneStringSlice(*patch.Channels.Telegram.Recipients)
@@ -570,6 +584,7 @@ func DecodeNotificationCenterSetting(raw jsonmap.JSON, fallback NotificationCent
 		}
 		if telegramMap := settingsvalue.ToStringAnyMap(channelsMap["telegram"]); telegramMap != nil {
 			next.Channels.Telegram.Enabled = settingsvalue.ReadBool(telegramMap, "enabled", next.Channels.Telegram.Enabled)
+			next.Channels.Telegram.BotToken = settingsvalue.ReadString(telegramMap, "bot_token", next.Channels.Telegram.BotToken)
 			next.Channels.Telegram.Recipients = settingsvalue.ReadStringList(telegramMap, "recipients", next.Channels.Telegram.Recipients)
 		}
 		if feishuMap := settingsvalue.ToStringAnyMap(channelsMap["feishu"]); feishuMap != nil {

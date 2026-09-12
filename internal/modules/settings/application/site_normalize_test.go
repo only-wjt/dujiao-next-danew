@@ -712,3 +712,23 @@ func TestUpdateTelegramAuthSettingNormalized(t *testing.T) {
 		t.Fatalf("unexpected replay_ttl_seconds: %v", result["replay_ttl_seconds"])
 	}
 }
+
+func TestNormalizeStorefrontTemplate(t *testing.T) {
+	cases := map[string]string{
+		"":         constants.StorefrontTemplateClassic,
+		"classic":  constants.StorefrontTemplateClassic,
+		"vault":    constants.StorefrontTemplateVault,
+		"inkstone": constants.StorefrontTemplateInkstone,
+		"nocturne": constants.StorefrontTemplateNocturne,
+		"celadon":  constants.StorefrontTemplateCeladon,
+		"ember":    constants.StorefrontTemplateEmber,
+		"unknown":  constants.StorefrontTemplateClassic,
+		" VAULT ":  constants.StorefrontTemplateClassic,
+		" vault ":  constants.StorefrontTemplateVault,
+	}
+	for raw, want := range cases {
+		if got := normalizeStorefrontTemplate(raw); got != want {
+			t.Fatalf("normalizeStorefrontTemplate(%q) = %q, want %q", raw, got, want)
+		}
+	}
+}

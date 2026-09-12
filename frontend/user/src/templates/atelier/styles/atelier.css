@@ -1,0 +1,126 @@
+/* =========================================================================
+   atelier 共用层（nocturne / celadon / ember）
+   只覆盖 --ui-* 与外壳排版；调色板由各主题文件写入同名 scope。
+   不碰 .vault-scope / .inkstone-scope / classic。
+   ========================================================================= */
+
+.nocturne-scope,
+body.nocturne-tokens,
+.celadon-scope,
+body.celadon-tokens,
+.ember-scope,
+body.ember-tokens {
+  --ui-bg-page: var(--bg);
+  --ui-bg-elevated: var(--surface);
+  --ui-bg-soft: var(--surface-2);
+  --ui-bg-muted: var(--bg-warm);
+  --ui-bg-overlay: color-mix(in srgb, var(--surface) 82%, transparent);
+  --ui-bg-overlay-strong: color-mix(in srgb, var(--surface) 94%, transparent);
+  --ui-text-primary: var(--ink);
+  --ui-text-secondary: var(--ink-2);
+  --ui-text-muted: var(--ink-3);
+  --ui-text-on-accent: var(--on-red);
+  --ui-border: var(--border);
+  --ui-border-strong: var(--border-strong);
+  --ui-accent: var(--red);
+  --ui-accent-hover: var(--red-strong);
+  --ui-accent-soft: var(--red-soft);
+  --ui-accent-warm: var(--gold);
+  --ui-accent-warm-hover: var(--gold-strong);
+  --ui-accent-warm-soft: var(--gold-soft);
+  --ui-success: var(--success);
+  --ui-success-soft: var(--teal-soft);
+  --ui-warning: var(--warning);
+  --ui-warning-soft: var(--gold-soft);
+  --ui-danger: var(--danger);
+  --ui-danger-soft: var(--red-soft);
+  --ui-info: var(--teal);
+  --ui-info-soft: var(--teal-soft);
+  --ui-focus-ring: var(--ring);
+  --ui-radius-sm: var(--r-sm);
+  --ui-radius-md: var(--r);
+  --ui-radius-lg: var(--r-lg);
+  --ui-radius-xl: var(--r-xl);
+  --ui-shadow-soft: var(--shadow);
+  --ui-shadow-card: var(--shadow-lg);
+}
+
+.nocturne-scope,
+.celadon-scope,
+.ember-scope {
+  background:
+    linear-gradient(180deg, var(--wash), transparent 140px),
+    var(--bg);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+@layer base {
+  .nocturne-scope h1,
+  .nocturne-scope h2,
+  .nocturne-scope h3,
+  .nocturne-scope h4,
+  .celadon-scope h1,
+  .celadon-scope h2,
+  .celadon-scope h3,
+  .celadon-scope h4,
+  .ember-scope h1,
+  .ember-scope h2,
+  .ember-scope h3,
+  .ember-scope h4 {
+    font-family: var(--font-head);
+    font-weight: 700;
+    line-height: 1.15;
+    margin: 0;
+    letter-spacing: 0.01em;
+    color: var(--ink);
+  }
+  .nocturne-scope p,
+  .celadon-scope p,
+  .ember-scope p { margin: 0; }
+  .nocturne-scope a,
+  .celadon-scope a,
+  .ember-scope a { color: inherit; text-decoration: none; }
+  .nocturne-scope img,
+  .nocturne-scope svg,
+  .celadon-scope img,
+  .celadon-scope svg,
+  .ember-scope img,
+  .ember-scope svg { display: block; max-width: 100%; }
+  .nocturne-scope button,
+  .celadon-scope button,
+  .ember-scope button { font-family: inherit; cursor: pointer; }
+  .nocturne-scope ul,
+  .celadon-scope ul,
+  .ember-scope ul { margin: 0; }
+  .nocturne-scope :focus-visible { outline: 2px solid var(--red); outline-offset: 2px; }
+  .celadon-scope :focus-visible { outline: 2px solid var(--red); outline-offset: 2px; }
+  .ember-scope :focus-visible { outline: 2px solid var(--red); outline-offset: 2px; }
+  .nocturne-scope ::selection,
+  .celadon-scope ::selection,
+  .ember-scope ::selection { background: var(--gold-soft); color: var(--ink); }
+}
+
+@media (max-width: 900px) {
+  .nocturne-scope,
+  .celadon-scope,
+  .ember-scope { --gap-block: 40px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .nocturne-scope *,
+  .nocturne-scope *::before,
+  .nocturne-scope *::after,
+  .celadon-scope *,
+  .celadon-scope *::before,
+  .celadon-scope *::after,
+  .ember-scope *,
+  .ember-scope *::before,
+  .ember-scope *::after { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
+}

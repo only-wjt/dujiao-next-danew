@@ -1,7 +1,17 @@
 <template>
   <div id="app" class="min-h-screen bg-background text-foreground flex flex-col">
-    <!-- vault 模板：自带顶栏/页脚的外壳包裹页面（控制台仍走下方分支） -->
-    <VaultLayout v-if="isVault && !isResellerConsole">
+    <!-- atelier / vault 外壳包裹页面（分销控制台仍走下方分支） -->
+    <ThemedLayout v-if="isAtelier && !isResellerConsole" :key="activeTemplate">
+      <ErrorBoundary>
+        <RouterView v-slot="{ Component }">
+          <Transition name="page-fade" mode="out-in">
+            <component :is="Component" />
+          </Transition>
+        </RouterView>
+      </ErrorBoundary>
+    </ThemedLayout>
+
+    <VaultLayout v-else-if="isVault && !isResellerConsole">
       <ErrorBoundary>
         <RouterView v-slot="{ Component }">
           <Transition name="page-fade" mode="out-in">
@@ -38,7 +48,7 @@
 import { computed, defineAsyncComponent } from 'vue'
 import { useRoute } from 'vue-router'
 import { useAppStore } from './stores/app'
-import { getActiveTemplate } from './templates/registry'
+import { getActiveTemplate, isAtelierTemplate } from './templates/registry'
 import Navbar from './components/Navbar.vue'
 import Footer from './components/Footer.vue'
 import Loading from './components/Loading.vue'
@@ -50,13 +60,16 @@ import MobileBottomNav from './components/MobileBottomNav.vue'
 
 // vault 外壳按需加载，classic 用户不会拉取其 chunk/样式
 const VaultLayout = defineAsyncComponent(() => import('./templates/vault/layout/VaultLayout.vue'))
+const ThemedLayout = defineAsyncComponent(() => import('./templates/atelier/layout/ThemedLayout.vue'))
 
 // config 由 router.beforeEach 统一加载，无需在此重复调用
 const appStore = useAppStore()
 const route = useRoute()
 const isResellerConsole = computed(() => route.meta.resellerConsole === true)
 // getActiveTemplate 读取 appStore.config（响应式），config 加载后会重新计算
-const isVault = computed(() => getActiveTemplate() === 'vault')
+const activeTemplate = computed(() => getActiveTemplate())
+const isVault = computed(() => activeTemplate.value === 'vault')
+const isAtelier = computed(() => isAtelierTemplate(activeTemplate.value))
 </script>
 
 <style>

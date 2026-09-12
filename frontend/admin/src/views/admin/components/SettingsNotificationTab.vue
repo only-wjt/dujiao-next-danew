@@ -34,6 +34,8 @@ interface NotificationData {
     }
     telegram: {
       enabled: boolean
+      bot_token: string
+      has_bot_token: boolean
       recipients_text: string
     }
     feishu: {
@@ -105,6 +107,8 @@ const form = reactive({
     },
     telegram: {
       enabled: false,
+      bot_token: '',
+      has_bot_token: false,
       recipients_text: '',
     },
     feishu: {
@@ -140,6 +144,8 @@ const syncFromProps = () => {
   form.channels.email.enabled = props.data.channels.email.enabled
   form.channels.email.recipients_text = props.data.channels.email.recipients_text
   form.channels.telegram.enabled = props.data.channels.telegram.enabled
+  form.channels.telegram.bot_token = ''
+  form.channels.telegram.has_bot_token = props.data.channels.telegram.has_bot_token
   form.channels.telegram.recipients_text = props.data.channels.telegram.recipients_text
   form.channels.feishu.enabled = props.data.channels.feishu.enabled
   form.channels.feishu.app_id = props.data.channels.feishu.app_id
@@ -279,6 +285,7 @@ const save = async () => {
         },
         telegram: {
           enabled: form.channels.telegram.enabled,
+          bot_token: form.channels.telegram.bot_token.trim(),
           recipients: splitRecipients(form.channels.telegram.recipients_text),
         },
         feishu: {
@@ -436,11 +443,24 @@ defineExpose({ save, submitting })
           <div class="rounded-xl border border-border">
             <div class="border-b border-border bg-muted/30 px-4 py-3">
               <h3 class="text-sm font-semibold">{{ t('admin.settings.notification.channels.telegram.title') }}</h3>
+              <p class="mt-1 text-xs text-muted-foreground">{{ t('admin.settings.notification.channels.telegram.subtitle') }}</p>
             </div>
             <div class="space-y-3 p-4">
               <div class="flex items-center gap-2">
                 <Switch v-model="form.channels.telegram.enabled" />
                 <Label class="text-sm">{{ t('admin.settings.notification.channels.telegram.enabled') }}</Label>
+              </div>
+              <div class="space-y-2">
+                <label class="text-xs font-medium text-muted-foreground">{{ t('admin.settings.notification.channels.telegram.botToken') }}</label>
+                <Input
+                  v-model="form.channels.telegram.bot_token"
+                  type="password"
+                  autocomplete="off"
+                  :placeholder="t('admin.settings.notification.channels.telegram.botTokenPlaceholder')"
+                />
+                <p class="text-xs text-muted-foreground">
+                  {{ form.channels.telegram.has_bot_token ? t('admin.settings.notification.channels.telegram.botTokenHintKeep') : t('admin.settings.notification.channels.telegram.botTokenHintEmpty') }}
+                </p>
               </div>
               <div class="space-y-2">
                 <label class="text-xs font-medium text-muted-foreground">{{ t('admin.settings.notification.channels.telegram.recipients') }}</label>
@@ -450,6 +470,7 @@ defineExpose({ save, submitting })
                   :placeholder="t('admin.settings.notification.channels.telegram.recipientsPlaceholder')"
                 />
               </div>
+              <p class="text-xs leading-relaxed text-muted-foreground">{{ t('admin.settings.notification.channels.telegram.setupHint') }}</p>
             </div>
           </div>
 
