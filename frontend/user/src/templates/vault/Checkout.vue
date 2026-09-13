@@ -203,18 +203,6 @@
           <div v-if="!requiresOnlineChannel" class="text-[13px] text-[color:var(--teal-strong)]">{{ t('checkout.walletCoversAll') }}</div>
         </div>
 
-        <CheckoutInvoiceDialog
-          class="mb-4"
-          :form="invoiceForm"
-          :currency="previewCurrency"
-          :invoice-fee="displayedInvoiceFee"
-          :channel-fee="displayedChannelFee"
-          :payable="displayedPayableTotal"
-          :error="invoiceFormError"
-          :format-price="formatPrice"
-          :has-positive-amount="hasPositiveAmount"
-        />
-
         <Button class="h-11 w-full rounded-full font-bold" :disabled="!canSubmit" @click="handleSubmit">
           {{ submitting ? t('checkout.submitting') : t('checkout.submitButton') }}
         </Button>

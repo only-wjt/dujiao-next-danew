@@ -84,9 +84,11 @@ export function useCheckout() {
 
   // Payment channels
   const paymentChannels = computed(() => {
-    const list = userAuthStore.isAuthenticated
-      ? orderPaymentChannels.value
-      : appStore.config?.payment_channels
+    const publicList = appStore.config?.payment_channels
+    const memberList = orderPaymentChannels.value
+    const list = userAuthStore.isAuthenticated && Array.isArray(memberList) && memberList.length > 0
+      ? memberList
+      : publicList
     if (!Array.isArray(list)) return []
     let filtered = list.filter((channel: any) => {
       const providerType = String(channel?.provider_type || '').toLowerCase()

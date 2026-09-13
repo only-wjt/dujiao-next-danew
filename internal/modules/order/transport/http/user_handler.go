@@ -280,8 +280,31 @@ func (h *UserHandler) GetOrderPaymentChannels(c *gin.Context) {
 		}
 		filtered := make([]map[string]interface{}, 0, len(channels))
 		for _, channel := range channels {
-			channelID, ok := channel["id"].(uint)
-			if !ok {
+			var channelID uint
+			switch raw := channel["id"].(type) {
+			case uint:
+				channelID = raw
+			case uint64:
+				channelID = uint(raw)
+			case int:
+				if raw <= 0 {
+					continue
+				}
+				channelID = uint(raw)
+			case int64:
+				if raw <= 0 {
+					continue
+				}
+				channelID = uint(raw)
+			case float64:
+				if raw <= 0 || raw != float64(uint64(raw)) {
+					continue
+				}
+				channelID = uint(raw)
+			default:
+				continue
+			}
+			if channelID == 0 {
 				continue
 			}
 			if _, matched := allowedSet[channelID]; matched {

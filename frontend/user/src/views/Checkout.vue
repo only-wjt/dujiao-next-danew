@@ -315,18 +315,6 @@
             </div>
           </div>
 
-          <CheckoutInvoiceDialog
-            class="mb-4"
-            :form="invoiceForm"
-            :currency="previewCurrency"
-            :invoice-fee="displayedInvoiceFee"
-            :channel-fee="displayedChannelFee"
-            :payable="displayedPayableTotal"
-            :error="invoiceFormError"
-            :format-price="formatPrice"
-            :has-positive-amount="hasPositiveAmount"
-          />
-
           <Button
             size="lg"
             class="w-full font-semibold"

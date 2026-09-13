@@ -254,12 +254,18 @@ func matchesChannelRole(channel paymentdomain.PaymentChannel, user *userdomain.U
 	if len(channel.PaymentRoles) == 0 {
 		return true
 	}
-	targetRole := constants.PaymentRoleGuest
 	if user != nil {
-		targetRole = constants.PaymentRoleMember
+		// 登录会员可用「会员」渠道，也可使用对游客开放的店面渠道。
+		// 渠道只勾了「游客」时，会员仍能付款，避免和商品「游客与会员均可」打架。
+		for _, role := range channel.PaymentRoles {
+			if role == constants.PaymentRoleMember || role == constants.PaymentRoleGuest {
+				return true
+			}
+		}
+		return false
 	}
 	for _, role := range channel.PaymentRoles {
-		if role == targetRole {
+		if role == constants.PaymentRoleGuest {
 			return true
 		}
 	}

@@ -117,6 +117,15 @@ func TestGetAvailableChannelsFilters(t *testing.T) {
 			want: []uint{guestOrderInRange.ID, typeLimitedOrder.ID, unrestricted.ID},
 		},
 		{
+			name: "member order can use guest-open storefront channels",
+			filter: paymentapp.AvailablePaymentChannelFilter{
+				TargetAmount: &amount50,
+				User:         memberLv2,
+				PaymentType:  constants.PaymentTypeOrder,
+			},
+			want: []uint{guestOrderInRange.ID, typeLimitedOrder.ID, unrestricted.ID, memberLevelOnlyLv2.ID},
+		},
+		{
 			name: "member lv2 wallet keeps member and level matched channels",
 			filter: paymentapp.AvailablePaymentChannelFilter{
 				TargetAmount: &amount50,

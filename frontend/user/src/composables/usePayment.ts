@@ -150,7 +150,7 @@ export function usePayment() {
 
   const configReady = computed(() => !appStore.loading && (!!appStore.config || (!isGuest.value && orderPaymentChannelsLoaded.value)))
   const channels = computed(() => {
-    if (!isGuest.value && orderPaymentChannelsLoaded.value) {
+    if (!isGuest.value && orderPaymentChannelsLoaded.value && orderPaymentChannels.value.length > 0) {
       return filterChannelsByOrder(orderPaymentChannels.value)
     }
     const fallback = appStore.config?.payment_channels
