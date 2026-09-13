@@ -27,12 +27,21 @@ func (s *PaymentService) buildOrderNotificationPayload(order *orderdomain.Order,
 	itemsSummary, fulfillmentItemsSummary, counts := notificationformat.BuildOrderItemSummaries(order.Items, locale)
 	providerType, channelType, paymentChannel := notificationPaymentChannel(order, payment)
 
+	amount := order.TotalAmount.Decimal
+	if payment != nil {
+		switch payment.FeePolicy {
+		case constants.PaymentFeePolicyCustomerSurcharge, constants.PaymentFeePolicyLegacyCustomerSurcharge:
+			if payment.FeeAmount.Decimal.GreaterThan(decimal.Zero) {
+				amount = amount.Add(payment.FeeAmount.Decimal)
+			}
+		}
+	}
 	payload := jsonmap.JSON{
 		"order_id":                  fmt.Sprintf("%d", order.ID),
 		"order_no":                  strings.TrimSpace(order.OrderNo),
 		"user_id":                   fmt.Sprintf("%d", order.UserID),
 		"guest_email":               strings.TrimSpace(order.GuestEmail),
-		"amount":                    order.TotalAmount.String(),
+		"amount":                    amount.Round(2).String(),
 		"currency":                  strings.ToUpper(strings.TrimSpace(order.Currency)),
 		"order_status":              strings.TrimSpace(order.Status),
 		"customer_email":            customerEmail,

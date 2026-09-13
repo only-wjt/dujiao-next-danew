@@ -73,6 +73,15 @@ func TestProductConfigurationNormalizersKeepDefaultsAndRejectUnknownValues(t *te
 	if got := NormalizePurchaseType(constants.ProductPurchaseGuest); got != constants.ProductPurchaseGuest {
 		t.Fatalf("guest purchase type want %q got %q", constants.ProductPurchaseGuest, got)
 	}
+	if got := NormalizePurchaseType(constants.ProductPurchaseBoth); got != constants.ProductPurchaseBoth {
+		t.Fatalf("both purchase type want %q got %q", constants.ProductPurchaseBoth, got)
+	}
+	if !AllowsGuestPurchase(constants.ProductPurchaseGuest) || !AllowsGuestPurchase(constants.ProductPurchaseBoth) {
+		t.Fatal("guest and both must allow guest checkout")
+	}
+	if AllowsGuestPurchase(constants.ProductPurchaseMember) || AllowsGuestPurchase("") {
+		t.Fatal("member-only products must reject guest checkout")
+	}
 	if got := NormalizePurchaseType("invalid"); got != "" {
 		t.Fatalf("invalid purchase type must be rejected, got %q", got)
 	}

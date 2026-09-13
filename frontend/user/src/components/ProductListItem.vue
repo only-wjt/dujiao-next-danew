@@ -55,7 +55,7 @@
         </Badge>
 
         <!-- Desktop: all badges -->
-        <Badge class="hidden sm:inline-flex" size="xs" :variant="product.purchase_type === 'guest' ? 'warning' : 'success'">
+        <Badge class="hidden sm:inline-flex" size="xs" :variant="product.purchase_type === 'member' ? 'success' : 'warning'">
           {{ getPurchaseTypeLabel(product.purchase_type) }}
         </Badge>
         <Badge class="hidden sm:inline-flex" size="xs" :variant="product.fulfillment_type === 'auto' ? 'info' : 'neutral'">

@@ -31,8 +31,20 @@ func NormalizePurchaseType(raw string) string {
 		return constants.ProductPurchaseMember
 	case constants.ProductPurchaseGuest:
 		return constants.ProductPurchaseGuest
+	case constants.ProductPurchaseBoth:
+		return constants.ProductPurchaseBoth
 	default:
 		return ""
+	}
+}
+
+// AllowsGuestPurchase 游客下单是否被该购买身份允许。guest/both 都开放游客与会员。
+func AllowsGuestPurchase(raw string) bool {
+	switch NormalizePurchaseType(raw) {
+	case constants.ProductPurchaseGuest, constants.ProductPurchaseBoth:
+		return true
+	default:
+		return false
 	}
 }
 

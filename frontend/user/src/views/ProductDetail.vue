@@ -76,8 +76,8 @@
                 </h1>
 
                 <div class="mb-6 flex flex-wrap items-center gap-2">
-                  <Badge :variant="product.purchase_type === 'guest' ? 'warning' : 'success'">
-                    <UserPlus v-if="product.purchase_type === 'guest'" class="h-3 w-3" />
+                  <Badge :variant="product.purchase_type === 'member' ? 'success' : 'warning'">
+                    <UserPlus v-if="product.purchase_type !== 'member'" class="h-3 w-3" />
                     <Lock v-else class="h-3 w-3" />
                     {{ getPurchaseTypeLabel(product.purchase_type) }}
                   </Badge>

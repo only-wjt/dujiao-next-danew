@@ -229,6 +229,7 @@ const (
 // 商品购买身份常量
 const (
 	ProductPurchaseGuest  = "guest"
+	ProductPurchaseBoth   = "both"
 	ProductPurchaseMember = "member"
 )
 

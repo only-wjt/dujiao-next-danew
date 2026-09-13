@@ -196,9 +196,15 @@ const formatAutoStockSummary = (product: AdminProduct) => {
 }
 
 const purchaseTypeBadgeClass = (product: AdminProduct) => {
-  return product?.purchase_type === 'guest'
-    ? 'border-sky-200 bg-sky-50 text-sky-700'
-    : 'border-indigo-200 bg-indigo-50 text-indigo-700'
+  return product?.purchase_type === 'member'
+    ? 'border-indigo-200 bg-indigo-50 text-indigo-700'
+    : 'border-sky-200 bg-sky-50 text-sky-700'
+}
+
+const purchaseTypeLabel = (product: AdminProduct) => {
+  if (product?.purchase_type === 'member') return t('admin.products.purchaseType.member')
+  if (product?.purchase_type === 'both') return t('admin.products.purchaseType.both')
+  return t('admin.products.purchaseType.guest')
 }
 
 const fulfillmentTypeBadgeClass = (product: AdminProduct) => {
@@ -620,7 +626,7 @@ watch(
                   <div class="text-xs text-muted-foreground font-mono break-all">{{ product.slug }}</div>
                   <div class="mt-2 flex flex-wrap gap-2">
                     <span class="rounded-full border px-2 py-0.5 text-[11px]" :class="purchaseTypeBadgeClass(product)">
-                      {{ product.purchase_type === 'guest' ? t('admin.products.purchaseType.guest') : t('admin.products.purchaseType.member') }}
+                      {{ purchaseTypeLabel(product) }}
                     </span>
                     <span class="rounded-full border px-2 py-0.5 text-[11px]" :class="fulfillmentTypeBadgeClass(product)">
                       {{ product.fulfillment_type === 'auto' ? t('admin.products.fulfillmentType.auto') : t('admin.products.fulfillmentType.manual') }}

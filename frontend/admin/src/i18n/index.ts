@@ -462,6 +462,7 @@ const messages = {
       invoiceNote: '发票备注',
       invoiceEmail: '收票邮箱',
       invoiceFee: '开票加价',
+      invoiceAmount: '开票金额',
       itemsTitle: '订单明细',
       couponDiscountLabel: '优惠券分摊',
       promotionDiscountLabel: '活动价分摊',
@@ -1537,8 +1538,9 @@ const messages = {
           unlimited: '库存不限',
         },
         purchaseType: {
-          member: '会员购买',
-          guest: '游客购买',
+          member: '仅会员购买',
+          guest: '游客与会员均可',
+          both: '游客与会员均可',
         },
         fulfillmentType: {
           manual: '人工交付',
@@ -4927,6 +4929,7 @@ const messages = {
       invoiceNote: '發票備註',
       invoiceEmail: '收票信箱',
       invoiceFee: '開票加價',
+      invoiceAmount: '開票金額',
       itemsTitle: '訂單明細',
       couponDiscountLabel: '優惠券分攤',
       promotionDiscountLabel: '活動價分攤',
@@ -6002,8 +6005,9 @@ const messages = {
           unlimited: '庫存不限',
         },
         purchaseType: {
-          member: '會員購買',
-          guest: '訪客購買',
+          member: '僅會員購買',
+          guest: '訪客與會員均可',
+          both: '訪客與會員均可',
         },
         fulfillmentType: {
           manual: '人工交付',
@@ -9392,6 +9396,7 @@ const messages = {
       invoiceNote: 'Invoice note',
       invoiceEmail: 'Invoice email',
       invoiceFee: 'Invoice surcharge',
+      invoiceAmount: 'Invoice amount',
       itemsTitle: 'Items',
       couponDiscountLabel: 'Coupon Discount',
       promotionDiscountLabel: 'Promotion Discount',
@@ -10468,7 +10473,8 @@ const messages = {
         },
         purchaseType: {
           member: 'Members only',
-          guest: 'Guest purchase',
+          guest: 'Guest and members',
+          both: 'Guest and members',
         },
         fulfillmentType: {
           manual: 'Manual',

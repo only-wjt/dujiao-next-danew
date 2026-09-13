@@ -49,11 +49,11 @@
                     <p v-if="itemStockHint(item)" class="mt-1 text-xs text-muted-foreground">{{ itemStockHint(item) }}</p>
                     <div class="mt-2 md:mt-3 flex flex-wrap gap-2">
                       <Badge
-                        :variant="item.purchaseType === 'guest' ? 'warning' : 'success'"
+                        :variant="item.purchaseType === 'member' ? 'success' : 'warning'"
                         size="xs"
                         class="uppercase tracking-wider"
                       >
-                        {{ item.purchaseType === 'guest' ? t('productPurchase.guest') : t('productPurchase.member') }}
+                        {{ item.purchaseType === 'member' ? t('productPurchase.member') : t('productPurchase.guest') }}
                       </Badge>
                       <Badge
                         :variant="item.fulfillmentType === 'auto' ? 'info' : 'neutral'"

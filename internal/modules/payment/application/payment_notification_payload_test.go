@@ -173,6 +173,14 @@ func TestBuildOrderNotificationPayloadIncludesInvoiceFields(t *testing.T) {
 	if got := fmt.Sprintf("%v", payload["amount"]); got != "165" && got != "165.00" {
 		t.Fatalf("amount should include invoice fee, got %s", got)
 	}
+
+	payload = svc.buildOrderNotificationPayload(order, &paymentdomain.Payment{
+		FeePolicy: constants.PaymentFeePolicyCustomerSurcharge,
+		FeeAmount: money.FromDecimal(decimal.RequireFromString("1.65")),
+	})
+	if got := fmt.Sprintf("%v", payload["amount"]); got != "166.65" {
+		t.Fatalf("amount should include channel surcharge, got %s", got)
+	}
 }
 
 func TestBuildOrderNotificationPayloadUsesDisplayChannelType(t *testing.T) {

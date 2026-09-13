@@ -1157,7 +1157,7 @@
       "title": "发票信息",
       "subtitle": "如需发票，应付金额将加收 10%。",
       "needInvoice": "需要开具发票",
-      "feeHint": "选择开票后，将在当前应付金额上加收 10%。",
+      "feeHint": "选择开票后加收 10%。开票金额会把已选支付通道手续费算进去。",
       "nameLabel": "发票抬头",
       "namePlaceholder": "填写公司或个人抬头",
       "emailLabel": "收票邮箱",
@@ -1165,6 +1165,8 @@
       "noteLabel": "发票备注（可选）",
       "notePlaceholder": "可填写税号或其他说明",
       "feeLabel": "开票加价（10%）",
+      "channelFeeLabel": "支付通道手续费",
+      "amountLabel": "开票金额",
       "payableLabel": "应付金额",
       "back": "返回",
       "pay": "去支付",
@@ -1739,7 +1741,8 @@
   },
   "productPurchase": {
     "label": "购买身份",
-    "member": "会员购买",
-    "guest": "游客可购"
+    "member": "仅会员购买",
+    "guest": "游客/会员可购",
+    "both": "游客/会员可购"
   }
 }

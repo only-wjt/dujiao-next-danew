@@ -114,6 +114,17 @@
             <p v-if="guestEmail && !guestEmailValid" class="mt-2 text-[13px] text-destructive">{{ t('error.email_invalid') }}</p>
           </template>
         </section>
+
+        <CheckoutInvoiceDialog
+          :form="invoiceForm"
+          :currency="previewCurrency"
+          :invoice-fee="displayedInvoiceFee"
+          :channel-fee="displayedChannelFee"
+          :payable="displayedPayableTotal"
+          :error="invoiceFormError"
+          :format-price="formatPrice"
+          :has-positive-amount="hasPositiveAmount"
+        />
       </div>
 
       <!-- 右栏：汇总 + 支付 -->
@@ -131,7 +142,8 @@
           </template>
           <div v-if="Number(previewMemberDiscount) > 0" class="flex items-center justify-between text-[13.5px]"><span class="text-muted-foreground">{{ t('checkout.previewMemberDiscount') }}</span><span class="font-semibold text-[color:var(--gold-strong)]">-{{ formatPrice(previewMemberDiscount, previewCurrency) }}</span></div>
           <div v-if="hasPositiveAmount(displayedInvoiceFee)" class="flex items-center justify-between text-[13.5px]"><span class="text-muted-foreground">{{ t('checkout.invoice.feeLabel') }}</span><span class="font-semibold text-foreground">+{{ formatPrice(displayedInvoiceFee, previewCurrency) }}</span></div>
-          <div class="mt-1 flex items-center justify-between border-t pt-3 font-bold text-foreground"><span>{{ t('checkout.previewTotal') }}</span><span class="text-[22px] text-primary tabular-nums">{{ formatPrice(displayedInvoiceTotal, previewCurrency) }}</span></div>
+          <div v-if="hasPositiveAmount(displayedChannelFee)" class="flex items-center justify-between text-[13.5px]"><span class="text-muted-foreground">{{ t('checkout.invoice.channelFeeLabel') }}</span><span class="font-semibold text-foreground">+{{ formatPrice(displayedChannelFee, previewCurrency) }}</span></div>
+          <div class="mt-1 flex items-center justify-between border-t pt-3 font-bold text-foreground"><span>{{ t('checkout.previewTotal') }}</span><span class="text-[22px] text-primary tabular-nums">{{ formatPrice(displayedPayableTotal, previewCurrency) }}</span></div>
         </div>
 
         <div v-if="previewLoading || couponRefreshing" class="mt-3 text-xs text-muted-foreground">{{ previewStatusText }}</div>
@@ -196,6 +208,8 @@
           :form="invoiceForm"
           :currency="previewCurrency"
           :invoice-fee="displayedInvoiceFee"
+          :channel-fee="displayedChannelFee"
+          :payable="displayedPayableTotal"
           :error="invoiceFormError"
           :format-price="formatPrice"
           :has-positive-amount="hasPositiveAmount"
@@ -233,8 +247,8 @@ const {
   checkoutMode, guestEmail, guestPassword, guestEmailValid,
   guestCaptchaEnabled, captchaProvider, guestCaptchaPayload, guestTurnstileToken, guestTurnstileSiteKey,
   guestImageCaptchaRef, guestTurnstileRef, handleGuestCaptchaConfigStale,
-  previewCurrency, previewOriginal, previewCoupon, previewPromotion, previewWholesale, previewMemberDiscount, previewTotal,
-  displayedInvoiceFee, displayedInvoiceTotal,
+  previewCurrency, previewOriginal, previewCoupon, previewPromotion, previewWholesale, previewMemberDiscount,
+  displayedInvoiceFee, displayedChannelFee, displayedPayableTotal,
   invoiceForm, invoiceFormError,
   previewLoading, couponRefreshing, previewStatusText, hasPositiveAmount, formatDiscountPrice, checkoutAlert,
   showBalanceOption, walletLoading, walletBalance, useBalance, walletOnlyPayment,

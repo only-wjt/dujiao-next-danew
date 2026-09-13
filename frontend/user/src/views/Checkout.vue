@@ -167,6 +167,17 @@
               {{ t('error.email_invalid') }}
             </p>
           </div>
+
+          <CheckoutInvoiceDialog
+            :form="invoiceForm"
+            :currency="previewCurrency"
+            :invoice-fee="displayedInvoiceFee"
+            :channel-fee="displayedChannelFee"
+            :payable="displayedPayableTotal"
+            :error="invoiceFormError"
+            :format-price="formatPrice"
+            :has-positive-amount="hasPositiveAmount"
+          />
         </div>
 
         <div class="h-fit rounded-2xl border bg-card text-card-foreground p-6 lg:sticky lg:top-24">
@@ -221,9 +232,13 @@
               <span>{{ t('checkout.invoice.feeLabel') }}</span>
               <span class="font-mono text-foreground">+{{ formatPrice(displayedInvoiceFee, previewCurrency) }}</span>
             </div>
+            <div v-if="hasPositiveAmount(displayedChannelFee)" class="flex items-center justify-between">
+              <span>{{ t('checkout.invoice.channelFeeLabel') }}</span>
+              <span class="font-mono text-foreground">+{{ formatPrice(displayedChannelFee, previewCurrency) }}</span>
+            </div>
             <div class="flex items-center justify-between border-t pt-3 text-foreground">
               <span class="font-semibold">{{ t('checkout.previewTotal') }}</span>
-              <span class="font-mono text-lg font-bold">{{ formatPrice(displayedInvoiceTotal, previewCurrency) }}</span>
+              <span class="font-mono text-lg font-bold">{{ formatPrice(displayedPayableTotal, previewCurrency) }}</span>
             </div>
           </div>
 
@@ -305,6 +320,8 @@
             :form="invoiceForm"
             :currency="previewCurrency"
             :invoice-fee="displayedInvoiceFee"
+            :channel-fee="displayedChannelFee"
+            :payable="displayedPayableTotal"
             :error="invoiceFormError"
             :format-price="formatPrice"
             :has-positive-amount="hasPositiveAmount"
@@ -351,8 +368,8 @@ const {
   checkoutMode, guestEmail, guestPassword, guestEmailValid,
   guestCaptchaEnabled, captchaProvider, guestCaptchaPayload, guestTurnstileToken, guestTurnstileSiteKey,
   guestImageCaptchaRef, guestTurnstileRef, handleGuestCaptchaConfigStale,
-  previewCurrency, previewOriginal, previewCoupon, previewPromotion, previewWholesale, previewMemberDiscount, previewTotal,
-  displayedInvoiceFee, displayedInvoiceTotal,
+  previewCurrency, previewOriginal, previewCoupon, previewPromotion, previewWholesale, previewMemberDiscount,
+  displayedInvoiceFee, displayedChannelFee, displayedPayableTotal,
   invoiceForm, invoiceFormError,
   previewLoading, couponRefreshing, previewStatusText, hasPositiveAmount, formatDiscountPrice, checkoutAlert,
   showBalanceOption, walletLoading, walletBalance, useBalance, walletOnlyPayment,

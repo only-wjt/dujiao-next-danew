@@ -37,7 +37,7 @@
                 <p v-if="itemSkuDisplay(item)" class="mt-1 text-[13px] text-muted-foreground">{{ t('cart.skuLabel') }}：{{ itemSkuDisplay(item) }}</p>
                 <p v-if="itemStockHint(item)" class="mt-1 text-[13px] text-muted-foreground">{{ itemStockHint(item) }}</p>
                 <div class="mt-2 flex flex-wrap gap-1.5">
-                  <Badge :variant="item.purchaseType === 'guest' ? 'warning' : 'info'" size="sm" class="rounded-full">{{ item.purchaseType === 'guest' ? t('productPurchase.guest') : t('productPurchase.member') }}</Badge>
+                  <Badge :variant="item.purchaseType === 'member' ? 'info' : 'warning'" size="sm" class="rounded-full">{{ item.purchaseType === 'member' ? t('productPurchase.member') : t('productPurchase.guest') }}</Badge>
                   <Badge variant="success" size="sm" class="rounded-full">{{ item.fulfillmentType === 'auto' ? t('products.fulfillmentType.auto') : t('products.fulfillmentType.manual') }}</Badge>
                 </div>
               </div>

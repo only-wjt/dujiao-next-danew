@@ -68,9 +68,9 @@
         <Badge
           class="hidden md:inline-flex"
           size="xs"
-          :variant="product.purchase_type === 'guest' ? 'warning' : 'success'"
+          :variant="product.purchase_type === 'member' ? 'success' : 'warning'"
         >
-          <UserPlus v-if="product.purchase_type === 'guest'" class="h-3 w-3" />
+          <UserPlus v-if="product.purchase_type !== 'member'" class="h-3 w-3" />
           <Lock v-else class="h-3 w-3" />
           {{ getPurchaseTypeLabel(product.purchase_type) }}
         </Badge>

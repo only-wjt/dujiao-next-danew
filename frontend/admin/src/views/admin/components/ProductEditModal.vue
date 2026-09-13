@@ -790,6 +790,7 @@ watch(
               <SelectContent>
                 <SelectItem value="member">{{ t('admin.products.purchaseType.member') }}</SelectItem>
                 <SelectItem value="guest">{{ t('admin.products.purchaseType.guest') }}</SelectItem>
+                <SelectItem value="both">{{ t('admin.products.purchaseType.both') }}</SelectItem>
               </SelectContent>
             </Select>
           </div>

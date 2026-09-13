@@ -128,14 +128,32 @@ export function useCheckout() {
   const expectedWalletPaidCents = computed(() => {
     if (!showBalanceOption.value || !useBalance.value) return 0
     const balance = amountToCents(walletBalance.value)
-    const total = amountToCents(previewTotal.value)
+    const total = amountToCents(displayedInvoiceTotal.value)
     if (balance === null || total === null) return 0
     return Math.min(balance, total)
   })
   const expectedOnlinePayCents = computed(() => {
-    const total = amountToCents(previewTotal.value)
+    const total = amountToCents(displayedInvoiceTotal.value)
     if (total === null) return 0
     return Math.max(total - expectedWalletPaidCents.value, 0)
+  })
+  const selectedChannel = computed(() => {
+    return paymentChannels.value.find((item: any) => Number(item?.id) === Number(selectedChannelId.value)) || null
+  })
+  const displayedChannelFeeCents = computed(() => {
+    const channel = selectedChannel.value
+    if (!channel || String(channel.fee_policy || '') !== 'customer_surcharge') return 0
+    const base = expectedOnlinePayCents.value
+    if (base <= 0) return 0
+    const rate = rateToBasisPoints(channel.fee_rate) ?? 0
+    const percentFee = calculateFeeCents(base, rate) ?? 0
+    const fixedFee = amountToCents(channel.fixed_fee) ?? 0
+    return Math.max(0, percentFee + fixedFee)
+  })
+  const displayedChannelFee = computed(() => centsToAmount(displayedChannelFeeCents.value))
+  const displayedPayableTotal = computed(() => {
+    const base = amountToCents(displayedInvoiceTotal.value) ?? 0
+    return centsToAmount(base + displayedChannelFeeCents.value)
   })
   const expectedWalletPaidDisplay = computed(() => formatPrice(centsToAmount(expectedWalletPaidCents.value), previewCurrency.value))
   const expectedOnlinePayDisplay = computed(() => formatPrice(centsToAmount(expectedOnlinePayCents.value), previewCurrency.value))
@@ -1216,6 +1234,8 @@ export function useCheckout() {
     previewInvoiceFee,
     displayedInvoiceFee,
     displayedInvoiceTotal,
+    displayedChannelFee,
+    displayedPayableTotal,
     invoiceForm,
     invoiceFormError,
     previewLoading,

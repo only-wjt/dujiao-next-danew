@@ -24,8 +24,8 @@
         <component :is="product.fulfillment_type === 'auto' ? Zap : Pencil" class="h-3 w-3" />
         {{ getFulfillmentTypeLabel(product.fulfillment_type) }}
       </span>
-      <span class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold" :class="product.purchase_type === 'guest' ? 'bg-[color:var(--gold-soft)] text-[color:var(--gold-strong)]' : 'bg-[color:var(--teal-soft)] text-[color:var(--teal-strong)]'">
-        <component :is="product.purchase_type === 'guest' ? UserPlus : Lock" class="h-3 w-3" />
+      <span class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold" :class="product.purchase_type === 'member' ? 'bg-[color:var(--teal-soft)] text-[color:var(--teal-strong)]' : 'bg-[color:var(--gold-soft)] text-[color:var(--gold-strong)]'">
+        <component :is="product.purchase_type === 'member' ? Lock : UserPlus" class="h-3 w-3" />
         {{ getPurchaseTypeLabel(product.purchase_type) }}
       </span>
       <span class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold" :class="stockPill.tone">

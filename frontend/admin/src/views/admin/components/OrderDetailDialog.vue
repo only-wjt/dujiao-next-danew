@@ -194,6 +194,17 @@ const orderPaymentFee = (order: AdminOrder | null) => {
   return Number(fee.toFixed(2))
 }
 
+const orderInvoiceAmount = (order: AdminOrder | null) => {
+  const total = Math.max(parseMoneyValue(order?.total_amount), 0)
+  if (!order?.payments?.length) return Number(total.toFixed(2))
+  const surcharge = order.payments.reduce((sum, payment) => {
+    if (payment.fee_policy !== 'customer_surcharge' && payment.fee_policy !== 'legacy_customer_surcharge') return sum
+    if (payment.status === 'failed' || payment.status === 'canceled' || payment.status === 'superseded') return sum
+    return sum + Math.max(parseMoneyValue(payment.fee_amount), 0)
+  }, 0)
+  return Number((total + surcharge).toFixed(2))
+}
+
 const orderProfit = (order: AdminOrder | null) => {
   if (!order?.items?.length) return 0
   const itemTotal = order.items.reduce((sum, item) => sum + itemProfit(order, item), 0)
@@ -817,6 +828,12 @@ watch(
                 <CardContent class="p-3">
                   <div class="text-xs text-muted-foreground">{{ t('orderDetail.invoiceEmail') }}</div>
                   <div class="mt-1 break-all text-foreground">{{ selectedOrder.invoice_email || '-' }}</div>
+                </CardContent>
+              </Card>
+              <Card class="min-w-0 rounded-lg border-border bg-background shadow-none">
+                <CardContent class="p-3">
+                  <div class="text-xs text-muted-foreground">{{ t('orderDetail.invoiceAmount') }}</div>
+                  <div class="mt-1 font-mono text-foreground">{{ formatMoney(orderInvoiceAmount(selectedOrder), selectedOrder.currency) }}</div>
                 </CardContent>
               </Card>
               <Card class="min-w-0 rounded-lg border-border bg-background shadow-none md:col-span-2">

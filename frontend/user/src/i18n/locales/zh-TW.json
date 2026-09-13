@@ -231,8 +231,9 @@
   },
   "productPurchase": {
     "label": "購買身份",
-    "member": "會員購買",
-    "guest": "遊客可購"
+    "member": "僅會員購買",
+    "guest": "遊客/會員可購",
+    "both": "遊客/會員可購"
   },
   "blog": {
     "subtitle": "最新文章和動態",
@@ -1204,7 +1205,7 @@
       "title": "發票資訊",
       "subtitle": "如需發票，應付金額將加收 10%。",
       "needInvoice": "需要開立發票",
-      "feeHint": "選擇開票後，將在目前應付金額上加收 10%。",
+      "feeHint": "選擇開票後加收 10%。開票金額會把已選支付通道手續費算進去。",
       "nameLabel": "發票抬頭",
       "namePlaceholder": "填寫公司或個人抬頭",
       "emailLabel": "收票信箱",
@@ -1212,6 +1213,8 @@
       "noteLabel": "發票備註（可選）",
       "notePlaceholder": "可填寫稅號或其他說明",
       "feeLabel": "開票加價（10%）",
+      "channelFeeLabel": "支付通道手續費",
+      "amountLabel": "開票金額",
       "payableLabel": "應付金額",
       "back": "返回",
       "pay": "去支付",

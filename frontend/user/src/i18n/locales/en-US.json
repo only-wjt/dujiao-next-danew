@@ -232,7 +232,8 @@
   "productPurchase": {
     "label": "Purchase type",
     "member": "Members only",
-    "guest": "Guest purchase"
+    "guest": "Guest and members",
+    "both": "Guest and members"
   },
   "blog": {
     "subtitle": "Latest articles and updates",
@@ -1204,7 +1205,7 @@
       "title": "Invoice details",
       "subtitle": "Choosing an invoice adds 10% to the payable amount.",
       "needInvoice": "I need an invoice",
-      "feeHint": "If you request an invoice, 10% will be added to the current payable amount.",
+      "feeHint": "Requesting an invoice adds 10%. The invoice amount includes the selected payment channel fee.",
       "nameLabel": "Invoice title",
       "namePlaceholder": "Company or personal name",
       "emailLabel": "Invoice email",
@@ -1212,6 +1213,8 @@
       "noteLabel": "Invoice note (optional)",
       "notePlaceholder": "Tax ID or other notes",
       "feeLabel": "Invoice surcharge (10%)",
+      "channelFeeLabel": "Payment channel fee",
+      "amountLabel": "Invoice amount",
       "payableLabel": "Amount due",
       "back": "Back",
       "pay": "Pay now",

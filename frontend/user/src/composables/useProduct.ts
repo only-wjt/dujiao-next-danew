@@ -35,7 +35,7 @@ export function useProductLabels() {
   const { t } = useI18n()
 
   const getPurchaseTypeLabel = (purchaseType: string) => {
-    return purchaseType === 'guest' ? t('productPurchase.guest') : t('productPurchase.member')
+    return purchaseType === 'member' ? t('productPurchase.member') : t('productPurchase.guest')
   }
 
   const getFulfillmentTypeLabel = (fulfillmentType: string) => {
