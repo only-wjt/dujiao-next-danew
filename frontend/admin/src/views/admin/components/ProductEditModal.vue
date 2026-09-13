@@ -540,7 +540,7 @@ const populateForm = (product: AdminProduct) => {
     cost_price_amount: Number(product.cost_price_amount || 0),
     images: imagesList,
     tags: tagsList,
-    purchase_type: product.purchase_type || 'member',
+    purchase_type: product.purchase_type === 'member' ? 'member' : 'both',
     min_purchase_quantity: Number(product.min_purchase_quantity || 0) > 0 ? Math.floor(Number(product.min_purchase_quantity || 0)) : '',
     max_purchase_quantity: Number(product.max_purchase_quantity || 0) > 0 ? Math.floor(Number(product.max_purchase_quantity || 0)) : '',
     stock_display_mode: product.stock_display_mode || 'exact',
@@ -789,10 +789,10 @@ watch(
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="member">{{ t('admin.products.purchaseType.member') }}</SelectItem>
-                <SelectItem value="guest">{{ t('admin.products.purchaseType.guest') }}</SelectItem>
                 <SelectItem value="both">{{ t('admin.products.purchaseType.both') }}</SelectItem>
               </SelectContent>
             </Select>
+            <p class="mt-1 text-xs text-muted-foreground">{{ t('admin.products.form.purchaseTypeTip') }}</p>
           </div>
 
           <div class="col-span-1">

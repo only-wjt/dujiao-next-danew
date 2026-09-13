@@ -175,11 +175,26 @@ func TestBuildOrderNotificationPayloadIncludesInvoiceFields(t *testing.T) {
 	}
 
 	payload = svc.buildOrderNotificationPayload(order, &paymentdomain.Payment{
+		Amount:    money.FromDecimal(decimal.RequireFromString("166.65")),
 		FeePolicy: constants.PaymentFeePolicyCustomerSurcharge,
 		FeeAmount: money.FromDecimal(decimal.RequireFromString("1.65")),
 	})
 	if got := fmt.Sprintf("%v", payload["amount"]); got != "166.65" {
 		t.Fatalf("amount should include channel surcharge, got %s", got)
+	}
+	if got := fmt.Sprintf("%v", payload["invoice_amount"]); got != "166.65" {
+		t.Fatalf("invoice_amount should include channel surcharge, got %s", got)
+	}
+	if got := fmt.Sprintf("%v", payload["channel_fee_amount"]); got != "1.65" {
+		t.Fatalf("channel_fee_amount mismatch: %s", got)
+	}
+
+	payload = svc.buildOrderNotificationPayload(order, &paymentdomain.Payment{
+		Amount:    money.FromDecimal(decimal.RequireFromString("166.65")),
+		FeeAmount: money.FromDecimal(decimal.RequireFromString("1.65")),
+	})
+	if got := fmt.Sprintf("%v", payload["amount"]); got != "166.65" {
+		t.Fatalf("amount should still include channel fee when fee_policy is empty, got %s", got)
 	}
 }
 

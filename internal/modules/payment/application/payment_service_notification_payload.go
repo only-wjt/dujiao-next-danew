@@ -28,20 +28,38 @@ func (s *PaymentService) buildOrderNotificationPayload(order *orderdomain.Order,
 	providerType, channelType, paymentChannel := notificationPaymentChannel(order, payment)
 
 	amount := order.TotalAmount.Decimal
+	channelFee := decimal.Zero
 	if payment != nil {
+		channelFee = payment.FeeAmount.Decimal
+		if channelFee.LessThan(decimal.Zero) {
+			channelFee = decimal.Zero
+		}
+		isWallet := payment.ProviderType == constants.PaymentProviderWallet || payment.ChannelType == constants.PaymentChannelTypeBalance
+		if !isWallet {
+			charged := order.WalletPaidAmount.Decimal.Add(payment.Amount.Decimal)
+			if charged.GreaterThan(amount) {
+				amount = charged
+			}
+		}
 		switch payment.FeePolicy {
-		case constants.PaymentFeePolicyCustomerSurcharge, constants.PaymentFeePolicyLegacyCustomerSurcharge:
-			if payment.FeeAmount.Decimal.GreaterThan(decimal.Zero) {
-				amount = amount.Add(payment.FeeAmount.Decimal)
+		case constants.PaymentFeePolicyCustomerSurcharge, constants.PaymentFeePolicyLegacyCustomerSurcharge, "":
+			if channelFee.GreaterThan(decimal.Zero) {
+				withFee := order.TotalAmount.Decimal.Add(channelFee)
+				if withFee.GreaterThan(amount) {
+					amount = withFee
+				}
 			}
 		}
 	}
+	amount = amount.Round(2)
 	payload := jsonmap.JSON{
 		"order_id":                  fmt.Sprintf("%d", order.ID),
 		"order_no":                  strings.TrimSpace(order.OrderNo),
 		"user_id":                   fmt.Sprintf("%d", order.UserID),
 		"guest_email":               strings.TrimSpace(order.GuestEmail),
-		"amount":                    amount.Round(2).String(),
+		"amount":                    amount.String(),
+		"invoice_amount":            amount.String(),
+		"channel_fee_amount":        channelFee.Round(2).String(),
 		"currency":                  strings.ToUpper(strings.TrimSpace(order.Currency)),
 		"order_status":              strings.TrimSpace(order.Status),
 		"customer_email":            customerEmail,
