@@ -48,7 +48,7 @@ func (s *Service) SendTest(ctx context.Context, input contract.TestSendInput) er
 	variables["event_type"] = scene
 	variables["message"] = format.PickMessage(variables["message"], "test message")
 	title := format.RenderTemplate(template.Title, variables)
-	body := format.RenderTemplate(template.Body, variables)
+	body := format.AppendInvoiceBlockIfNeeded(format.RenderTemplate(template.Body, variables), variables, locale)
 	if strings.TrimSpace(body) == "" {
 		body = title
 	}
@@ -79,7 +79,7 @@ func (s *Service) SendTest(ctx context.Context, input contract.TestSendInput) er
 		gatewayCtx, cancel := detachOutboundRequestContext(ctx)
 		defer cancel()
 		if s.telegramSender != nil {
-			message := format.ComposePlainTextMessage(title, body)
+			message := format.ComposeTelegramMessage(title, body)
 			if token := strings.TrimSpace(input.BotToken); token != "" {
 				sendErr = s.telegramSender.SendMessageWithBotToken(gatewayCtx, token, target, message)
 			} else {
@@ -145,7 +145,7 @@ func (s *Service) dispatchSingleEvent(ctx context.Context, setting settingsmessa
 	template := setting.Templates.TemplateByEvent(payload.EventType).ResolveLocaleTemplate(locale)
 	variables := format.BuildTemplateVariables(payload)
 	title := format.RenderTemplate(template.Title, variables)
-	body := format.RenderTemplate(template.Body, variables)
+	body := format.AppendInvoiceBlockIfNeeded(format.RenderTemplate(template.Body, variables), variables, locale)
 	if strings.TrimSpace(body) == "" {
 		body = title
 	}
@@ -189,7 +189,7 @@ func (s *Service) dispatchSingleEvent(ctx context.Context, setting settingsmessa
 		}
 	}
 	if setting.Channels.Telegram.Enabled && len(setting.Channels.Telegram.Recipients) > 0 {
-		message := format.ComposePlainTextMessage(title, body)
+		message := format.ComposeTelegramMessage(title, body)
 		for _, recipient := range setting.Channels.Telegram.Recipients {
 			var sendErr error
 			if s.telegramSender == nil {

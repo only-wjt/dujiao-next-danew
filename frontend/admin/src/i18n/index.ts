@@ -3333,7 +3333,8 @@ const messages = {
             title: '模板配置（按当前语言编辑）',
             titlePlaceholder: '通知标题，支持变量',
             bodyPlaceholder: '通知正文，支持多行与变量',
-            variableHint: '可用变量示例：{\'{{customer_label}}\'} {\'{{customer_email}}\'} {\'{{order_no}}\'} {\'{{payment_channel}}\'} {\'{{invoice_title}}\'} {\'{{invoice_email}}\'} {\'{{invoice_note}}\'} {\'{{items_summary}}\'} {\'{{fulfillment_items_summary}}\'} {\'{{delivery_summary}}\'} {\'{{alert_type}}\'} {\'{{affected_items_summary}}\'} {\'{{affected_items_count}}\'}',
+            orderPaidInvoiceHint: '买家勾选开票时，会并入这条支付成功通知，并用加粗+⚠️ 标出「本单需要开发票」。Telegram 普通消息不能改字体颜色。',
+            variableHint: '可用变量示例：{\'{{customer_label}}\'} {\'{{customer_email}}\'} {\'{{order_no}}\'} {\'{{payment_channel}}\'} {\'{{invoice_title}}\'} {\'{{invoice_email}}\'} {\'{{invoice_note}}\'} {\'{{invoice_block}}\'} {\'{{invoice_notice}}\'} {\'{{items_summary}}\'} {\'{{fulfillment_items_summary}}\'} {\'{{delivery_summary}}\'} {\'{{alert_type}}\'} {\'{{affected_items_summary}}\'} {\'{{affected_items_count}}\'}',
           },
         },
         dashboard: {
@@ -7801,7 +7802,8 @@ const messages = {
             title: '模板配置（依目前語言編輯）',
             titlePlaceholder: '通知標題，支援變數',
             bodyPlaceholder: '通知內容，支援多行與變數',
-            variableHint: '可用變數示例：{\'{{customer_label}}\'} {\'{{customer_email}}\'} {\'{{order_no}}\'} {\'{{payment_channel}}\'} {\'{{invoice_title}}\'} {\'{{invoice_email}}\'} {\'{{invoice_note}}\'} {\'{{items_summary}}\'} {\'{{fulfillment_items_summary}}\'} {\'{{delivery_summary}}\'} {\'{{alert_type}}\'} {\'{{affected_items_summary}}\'} {\'{{affected_items_count}}\'}',
+            orderPaidInvoiceHint: '買家勾選開票時，會併入這條支付成功通知，並用加粗+⚠️ 標出「本單需要開發票」。Telegram 普通訊息不能改字體顏色。',
+            variableHint: '可用變數示例：{\'{{customer_label}}\'} {\'{{customer_email}}\'} {\'{{order_no}}\'} {\'{{payment_channel}}\'} {\'{{invoice_title}}\'} {\'{{invoice_email}}\'} {\'{{invoice_note}}\'} {\'{{invoice_block}}\'} {\'{{invoice_notice}}\'} {\'{{items_summary}}\'} {\'{{fulfillment_items_summary}}\'} {\'{{delivery_summary}}\'} {\'{{alert_type}}\'} {\'{{affected_items_summary}}\'} {\'{{affected_items_count}}\'}',
           },
         },
         dashboard: {
@@ -12269,7 +12271,8 @@ const messages = {
             title: 'Templates (edit in current language)',
             titlePlaceholder: 'Notification title, variables supported',
             bodyPlaceholder: 'Notification body, multiline and variables supported',
-            variableHint: 'Example variables: {\'{{customer_label}}\'} {\'{{customer_email}}\'} {\'{{order_no}}\'} {\'{{payment_channel}}\'} {\'{{invoice_title}}\'} {\'{{invoice_email}}\'} {\'{{invoice_note}}\'} {\'{{items_summary}}\'} {\'{{fulfillment_items_summary}}\'} {\'{{delivery_summary}}\'} {\'{{alert_type}}\'} {\'{{affected_items_summary}}\'} {\'{{affected_items_count}}\'}',
+            orderPaidInvoiceHint: 'When the buyer asks for an invoice, the paid-order notice includes it and marks “This order requires an invoice” in bold with a warning emoji. Telegram cannot color ordinary message text.',
+            variableHint: 'Example variables: {\'{{customer_label}}\'} {\'{{customer_email}}\'} {\'{{order_no}}\'} {\'{{payment_channel}}\'} {\'{{invoice_title}}\'} {\'{{invoice_email}}\'} {\'{{invoice_note}}\'} {\'{{invoice_block}}\'} {\'{{invoice_notice}}\'} {\'{{items_summary}}\'} {\'{{fulfillment_items_summary}}\'} {\'{{delivery_summary}}\'} {\'{{alert_type}}\'} {\'{{affected_items_summary}}\'} {\'{{affected_items_count}}\'}',
           },
         },
         dashboard: {

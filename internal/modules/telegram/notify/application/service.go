@@ -36,6 +36,7 @@ func (s *Service) SendMessage(ctx context.Context, chatID, message string) error
 	return s.sender.SendWithBotToken(ctx, token, notifycontract.SendOptions{
 		ChatID:                chatID,
 		Message:               message,
+		ParseMode:             "HTML",
 		DisableWebPagePreview: true,
 	})
 }
@@ -45,7 +46,7 @@ func (s *Service) SendWithBotToken(ctx context.Context, botToken string, options
 	return s.sender.SendWithBotToken(ctx, botToken, options)
 }
 
-// SendMessageWithBotToken 使用表单或调用方提供的 Bot Token 发送纯文本通知。
+// SendMessageWithBotToken 使用表单或调用方提供的 Bot Token 发送 Telegram HTML 通知。
 func (s *Service) SendMessageWithBotToken(ctx context.Context, botToken, chatID, message string) error {
 	token := strings.TrimSpace(botToken)
 	if token == "" {
@@ -54,6 +55,7 @@ func (s *Service) SendMessageWithBotToken(ctx context.Context, botToken, chatID,
 	return s.sender.SendWithBotToken(ctx, token, notifycontract.SendOptions{
 		ChatID:                chatID,
 		Message:               message,
+		ParseMode:             "HTML",
 		DisableWebPagePreview: true,
 	})
 }

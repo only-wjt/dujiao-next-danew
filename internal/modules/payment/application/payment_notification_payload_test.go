@@ -419,7 +419,7 @@ func TestNotificationCenterDefaultSettingIncludesRichOrderVariables(t *testing.T
 	setting := settingsmessaging.NotificationCenterDefaultSetting()
 
 	orderBody := setting.Templates.OrderPaidSuccess.ZHCN.Body
-	if !strings.Contains(orderBody, "{{customer_email}}") || !strings.Contains(orderBody, "{{items_summary}}") {
+	if !strings.Contains(orderBody, "{{customer_email}}") || !strings.Contains(orderBody, "{{items_summary}}") || !strings.Contains(orderBody, "{{invoice_block}}") {
 		t.Fatalf("order paid template should include rich variables, got: %s", orderBody)
 	}
 
@@ -679,6 +679,44 @@ func TestBuildNotificationTestVariablesIncludesSceneSpecificSamples(t *testing.T
 	}
 	if got := fmt.Sprintf("%v", orderVars["payment_channel"]); got != "epay/alipay" {
 		t.Fatalf("payment_channel want epay/alipay got %s", got)
+	}
+	if got := fmt.Sprintf("%v", orderVars["invoice_requested"]); got != "true" {
+		t.Fatalf("order paid test variables should include invoice_requested, got: %v", orderVars["invoice_requested"])
+	}
+
+	invoiceBlock := notificationformat.BuildInvoiceBlock(map[string]interface{}{
+		"invoice_requested": true,
+		"invoice_title":     "杭州点皓科技",
+		"invoice_note":      "91330108328316463M",
+		"invoice_email":     "billing@example.com",
+		"amount":            "777.70",
+		"currency":          "CNY",
+	}, constants.LocaleZhCN)
+	if !strings.Contains(invoiceBlock, "⚠️ 本单需要开发票") || !strings.Contains(invoiceBlock, "杭州点皓科技") {
+		t.Fatalf("invoice block missing notice or title: %s", invoiceBlock)
+	}
+	merged := notificationformat.AppendInvoiceBlockIfNeeded("购买人：张三", map[string]interface{}{
+		"invoice_requested": true,
+		"invoice_title":     "杭州点皓科技",
+		"amount":            "777.70",
+		"currency":          "CNY",
+		"invoice_email":     "billing@example.com",
+	}, constants.LocaleZhCN)
+	if !strings.Contains(merged, "购买人：张三") || !strings.Contains(merged, "⚠️ 本单需要开发票") {
+		t.Fatalf("merged paid notice should keep order text and append invoice: %s", merged)
+	}
+	if got := notificationformat.AppendInvoiceBlockIfNeeded(merged, map[string]interface{}{
+		"invoice_requested": true,
+		"invoice_title":     "杭州点皓科技",
+		"amount":            "777.70",
+		"currency":          "CNY",
+		"invoice_email":     "billing@example.com",
+	}, constants.LocaleZhCN); got != merged {
+		t.Fatalf("invoice block must not be appended twice, got: %s", got)
+	}
+	tg := notificationformat.ComposeTelegramMessage("订单支付成功通知", merged)
+	if !strings.Contains(tg, "<b>订单支付成功通知</b>") || !strings.Contains(tg, "<b>⚠️ 本单需要开发票</b>") {
+		t.Fatalf("telegram message should bold title and invoice notice: %s", tg)
 	}
 
 	alertVars := notificationformat.BuildTestVariables(constants.NotificationEventExceptionAlert, constants.LocaleEnUS)

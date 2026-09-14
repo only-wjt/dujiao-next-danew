@@ -568,10 +568,6 @@ defineExpose({ save, submitting, telegramBotToken })
               <Label class="text-sm">{{ t('admin.settings.notification.scenes.orderPaidSuccess') }}</Label>
             </div>
             <div class="flex items-center gap-2 text-sm">
-              <Switch v-model="form.scenes.invoice_requested" />
-              <Label class="text-sm">{{ t('admin.settings.notification.scenes.invoiceRequested') }}</Label>
-            </div>
-            <div class="flex items-center gap-2 text-sm">
               <Switch v-model="form.scenes.manual_fulfillment_pending" />
               <Label class="text-sm">{{ t('admin.settings.notification.scenes.manualFulfillmentPending') }}</Label>
             </div>
@@ -599,17 +595,10 @@ defineExpose({ save, submitting, telegramBotToken })
 
             <div class="rounded-lg border border-border bg-muted/10 p-4">
               <h4 class="text-sm font-medium">{{ t('admin.settings.notification.scenes.orderPaidSuccess') }}</h4>
+              <p class="mt-1 text-xs leading-relaxed text-muted-foreground">{{ t('admin.settings.notification.templates.orderPaidInvoiceHint') }}</p>
               <div class="mt-3 space-y-2">
                 <Input v-model="form.templates.order_paid_success[currentLang].title" :placeholder="t('admin.settings.notification.templates.titlePlaceholder')" />
-                <Textarea v-model="form.templates.order_paid_success[currentLang].body" rows="4" :placeholder="t('admin.settings.notification.templates.bodyPlaceholder')" />
-              </div>
-            </div>
-
-            <div class="rounded-lg border border-border bg-muted/10 p-4">
-              <h4 class="text-sm font-medium">{{ t('admin.settings.notification.scenes.invoiceRequested') }}</h4>
-              <div class="mt-3 space-y-2">
-                <Input v-model="form.templates.invoice_requested[currentLang].title" :placeholder="t('admin.settings.notification.templates.titlePlaceholder')" />
-                <Textarea v-model="form.templates.invoice_requested[currentLang].body" rows="4" :placeholder="t('admin.settings.notification.templates.bodyPlaceholder')" />
+                <Textarea v-model="form.templates.order_paid_success[currentLang].body" rows="6" :placeholder="t('admin.settings.notification.templates.bodyPlaceholder')" />
               </div>
             </div>
 
