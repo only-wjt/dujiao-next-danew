@@ -142,21 +142,6 @@ func (s *PaymentService) enqueueOrderPaidNotificationAsync(order *orderdomain.Or
 			"error", err,
 		)
 	}
-	if !order.InvoiceRequested {
-		return
-	}
-	if err := s.notificationSvc.Enqueue(notificationcontract.EnqueueInput{
-		EventType: constants.NotificationEventInvoiceRequested,
-		BizType:   constants.NotificationBizTypeOrder,
-		BizID:     order.ID,
-		Data:      payload,
-	}); err != nil {
-		log.Warnw("notification_enqueue_invoice_requested_failed",
-			"order_id", order.ID,
-			"order_no", order.OrderNo,
-			"error", err,
-		)
-	}
 }
 
 func (s *PaymentService) enqueueWalletRechargeSuccessAsync(recharge *walletdomain.RechargeOrder, payment *paymentdomain.Payment, log *zap.SugaredLogger) {

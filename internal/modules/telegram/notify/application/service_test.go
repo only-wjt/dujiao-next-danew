@@ -80,6 +80,9 @@ func TestServiceSendMessageUsesDynamicBotToken(t *testing.T) {
 	if sender.options.ChatID != "10001" || sender.options.Message != "hello" {
 		t.Fatalf("unexpected send options: %#v", sender.options)
 	}
+	if sender.options.ParseMode != "HTML" {
+		t.Fatalf("telegram notifications must use HTML parse mode, got %q", sender.options.ParseMode)
+	}
 	if !sender.options.DisableWebPagePreview {
 		t.Fatal("configured notification must disable web page previews")
 	}

@@ -229,15 +229,15 @@ func NotificationCenterDefaultSetting() NotificationCenterSetting {
 			OrderPaidSuccess: NotificationSceneTemplate{
 				ZHCN: NotificationLocalizedTemplate{
 					Title: "订单支付成功通知",
-					Body:  "购买人：{{customer_label}}\n邮箱：{{customer_email}}\n订单号：{{order_no}}\n订单金额：{{amount}} {{currency}}\n支付渠道：{{payment_channel}}\n商品明细：\n{{items_summary}}\n交付摘要：{{delivery_summary}}",
+					Body:  "购买人：{{customer_label}}\n邮箱：{{customer_email}}\n订单号：{{order_no}}\n订单金额：{{amount}} {{currency}}\n支付渠道：{{payment_channel}}\n商品明细：\n{{items_summary}}\n交付摘要：{{delivery_summary}}\n{{invoice_block}}",
 				},
 				ZHTW: NotificationLocalizedTemplate{
 					Title: "訂單支付成功通知",
-					Body:  "購買人：{{customer_label}}\n郵箱：{{customer_email}}\n訂單號：{{order_no}}\n訂單金額：{{amount}} {{currency}}\n支付渠道：{{payment_channel}}\n商品明細：\n{{items_summary}}\n交付摘要：{{delivery_summary}}",
+					Body:  "購買人：{{customer_label}}\n郵箱：{{customer_email}}\n訂單號：{{order_no}}\n訂單金額：{{amount}} {{currency}}\n支付渠道：{{payment_channel}}\n商品明細：\n{{items_summary}}\n交付摘要：{{delivery_summary}}\n{{invoice_block}}",
 				},
 				ENUS: NotificationLocalizedTemplate{
 					Title: "Order Payment Succeeded",
-					Body:  "Customer: {{customer_label}}\nEmail: {{customer_email}}\nOrder No: {{order_no}}\nAmount: {{amount}} {{currency}}\nChannel: {{payment_channel}}\nItems:\n{{items_summary}}\nDelivery Summary: {{delivery_summary}}",
+					Body:  "Customer: {{customer_label}}\nEmail: {{customer_email}}\nOrder No: {{order_no}}\nAmount: {{amount}} {{currency}}\nChannel: {{payment_channel}}\nItems:\n{{items_summary}}\nDelivery Summary: {{delivery_summary}}\n{{invoice_block}}",
 				},
 			},
 			InvoiceRequested: NotificationSceneTemplate{

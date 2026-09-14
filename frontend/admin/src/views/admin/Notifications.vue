@@ -159,7 +159,6 @@ const currentChannelTargets = computed(() => {
 const testScenes = computed(() => [
   { value: 'wallet_recharge_success', label: t('admin.settings.notification.scenes.walletRechargeSuccess') },
   { value: 'order_paid_success', label: t('admin.settings.notification.scenes.orderPaidSuccess') },
-  { value: 'invoice_requested', label: t('admin.settings.notification.scenes.invoiceRequested') },
   { value: 'manual_fulfillment_pending', label: t('admin.settings.notification.scenes.manualFulfillmentPending') },
   { value: 'exception_alert', label: t('admin.settings.notification.scenes.exceptionAlert') },
 ])
