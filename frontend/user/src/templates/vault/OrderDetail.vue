@@ -35,7 +35,7 @@
         </div>
         <div>
           <div class="text-[11px] uppercase tracking-[0.06em] text-muted-foreground">{{ t('orderDetail.amountTotal') }}</div>
-          <div class="mt-1 text-2xl font-extrabold tabular-nums">{{ formatMoney(order.total_amount, order.currency) }}</div>
+          <div class="mt-1 text-2xl font-extrabold tabular-nums">{{ formatMoney(orderPaidAmount(order), order.currency) }}</div>
         </div>
         <div class="flex flex-wrap items-center gap-2.5">
           <Badge :variant="statusVariant(order.status)" class="rounded-full">{{ statusLabel(order.status) }}</Badge>
@@ -68,6 +68,6 @@ const { t } = useI18n()
 
 const {
   loading, order, debouncedLoadOrder, cancelOrder, fulfillmentDownloading, handleDownloadFulfillment,
-  statusLabel, statusVariant, formatDate, formatMoney,
+  statusLabel, statusVariant, formatDate, formatMoney, orderPaidAmount,
 } = useOrderDetail()
 </script>

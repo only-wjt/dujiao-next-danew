@@ -12,12 +12,14 @@ import (
 const (
 	invoiceTitleMaxLen = 200
 	invoiceNoteMaxLen  = 500
+	invoiceTaxNoMaxLen = 64
 )
 
 // InvoiceInput 结账开票请求。
 type InvoiceInput struct {
 	Requested bool
 	Title     string
+	TaxNo     string
 	Note      string
 	Email     string
 }
@@ -35,11 +37,15 @@ func NormalizeInvoiceInput(input InvoiceInput, requireDetails bool) (InvoiceInpu
 	next := InvoiceInput{
 		Requested: input.Requested,
 		Title:     strings.TrimSpace(input.Title),
+		TaxNo:     strings.ToUpper(strings.Join(strings.Fields(input.TaxNo), "")),
 		Note:      strings.TrimSpace(input.Note),
 		Email:     strings.ToLower(strings.TrimSpace(input.Email)),
 	}
 	if utf8.RuneCountInString(next.Title) > invoiceTitleMaxLen {
 		next.Title = string([]rune(next.Title)[:invoiceTitleMaxLen])
+	}
+	if utf8.RuneCountInString(next.TaxNo) > invoiceTaxNoMaxLen {
+		next.TaxNo = string([]rune(next.TaxNo)[:invoiceTaxNoMaxLen])
 	}
 	if utf8.RuneCountInString(next.Note) > invoiceNoteMaxLen {
 		next.Note = string([]rune(next.Note)[:invoiceNoteMaxLen])

@@ -68,6 +68,7 @@ type CreateOrderAndPayRequest struct {
 	UseBalance          bool                    `json:"use_balance"`
 	InvoiceRequested    bool                    `json:"invoice_requested"`
 	InvoiceTitle        string                  `json:"invoice_title"`
+	InvoiceTaxNo        string                  `json:"invoice_tax_no"`
 	InvoiceNote         string                  `json:"invoice_note"`
 	InvoiceEmail        string                  `json:"invoice_email"`
 }
@@ -85,6 +86,7 @@ type CreateGuestOrderAndPayRequest struct {
 	ChannelID           uint                              `json:"channel_id"`
 	InvoiceRequested    bool                              `json:"invoice_requested"`
 	InvoiceTitle        string                            `json:"invoice_title"`
+	InvoiceTaxNo        string                            `json:"invoice_tax_no"`
 	InvoiceNote         string                            `json:"invoice_note"`
 	InvoiceEmail        string                            `json:"invoice_email"`
 }
@@ -128,6 +130,7 @@ func (h *CreateHandler) CreateOrder(c *gin.Context) {
 		ManualFormData:      req.ManualFormData,
 		InvoiceRequested:    req.InvoiceRequested,
 		InvoiceTitle:        req.InvoiceTitle,
+		InvoiceTaxNo:        req.InvoiceTaxNo,
 		InvoiceNote:         req.InvoiceNote,
 		InvoiceEmail:        req.InvoiceEmail,
 	})
@@ -165,6 +168,7 @@ func (h *CreateHandler) CreateGuestOrder(c *gin.Context) {
 		ManualFormData:      req.ManualFormData,
 		InvoiceRequested:    req.InvoiceRequested,
 		InvoiceTitle:        req.InvoiceTitle,
+		InvoiceTaxNo:        req.InvoiceTaxNo,
 		InvoiceNote:         req.InvoiceNote,
 		InvoiceEmail:        req.InvoiceEmail,
 	})
@@ -201,6 +205,7 @@ func (h *CreateHandler) CreateOrderAndPay(c *gin.Context) {
 		ManualFormData:      req.ManualFormData,
 		InvoiceRequested:    req.InvoiceRequested,
 		InvoiceTitle:        req.InvoiceTitle,
+		InvoiceTaxNo:        req.InvoiceTaxNo,
 		InvoiceNote:         req.InvoiceNote,
 		InvoiceEmail:        req.InvoiceEmail,
 	})
@@ -247,6 +252,7 @@ func (h *CreateHandler) CreateGuestOrderAndPay(c *gin.Context) {
 		ManualFormData:      req.ManualFormData,
 		InvoiceRequested:    req.InvoiceRequested,
 		InvoiceTitle:        req.InvoiceTitle,
+		InvoiceTaxNo:        req.InvoiceTaxNo,
 		InvoiceNote:         req.InvoiceNote,
 		InvoiceEmail:        req.InvoiceEmail,
 	})

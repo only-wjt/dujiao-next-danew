@@ -826,6 +826,12 @@ watch(
               </Card>
               <Card class="min-w-0 rounded-lg border-border bg-background shadow-none">
                 <CardContent class="p-3">
+                  <div class="text-xs text-muted-foreground">{{ t('orderDetail.invoiceTaxNo') }}</div>
+                  <div class="mt-1 break-all font-mono text-foreground">{{ selectedOrder.invoice_tax_no || '-' }}</div>
+                </CardContent>
+              </Card>
+              <Card class="min-w-0 rounded-lg border-border bg-background shadow-none">
+                <CardContent class="p-3">
                   <div class="text-xs text-muted-foreground">{{ t('orderDetail.invoiceEmail') }}</div>
                   <div class="mt-1 break-all text-foreground">{{ selectedOrder.invoice_email || '-' }}</div>
                 </CardContent>

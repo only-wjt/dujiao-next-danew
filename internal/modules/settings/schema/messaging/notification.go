@@ -243,15 +243,15 @@ func NotificationCenterDefaultSetting() NotificationCenterSetting {
 			InvoiceRequested: NotificationSceneTemplate{
 				ZHCN: NotificationLocalizedTemplate{
 					Title: "待开发票通知",
-					Body:  "订单号：{{order_no}}\n购买人：{{customer_label}}\n发票抬头：{{invoice_title}}\n发票备注：{{invoice_note}}\n开票金额：{{amount}} {{currency}}\n收票邮箱：{{invoice_email}}\n商品明细：\n{{items_summary}}",
+					Body:  "订单号：{{order_no}}\n购买人：{{customer_label}}\n发票抬头：{{invoice_title}}\n税号：{{invoice_tax_no}}\n发票备注：{{invoice_note}}\n开票金额：{{amount}} {{currency}}\n收票邮箱：{{invoice_email}}\n商品明细：\n{{items_summary}}",
 				},
 				ZHTW: NotificationLocalizedTemplate{
 					Title: "待開發票通知",
-					Body:  "訂單號：{{order_no}}\n購買人：{{customer_label}}\n發票抬頭：{{invoice_title}}\n發票備註：{{invoice_note}}\n開票金額：{{amount}} {{currency}}\n收票信箱：{{invoice_email}}\n商品明細：\n{{items_summary}}",
+					Body:  "訂單號：{{order_no}}\n購買人：{{customer_label}}\n發票抬頭：{{invoice_title}}\n稅號：{{invoice_tax_no}}\n發票備註：{{invoice_note}}\n開票金額：{{amount}} {{currency}}\n收票信箱：{{invoice_email}}\n商品明細：\n{{items_summary}}",
 				},
 				ENUS: NotificationLocalizedTemplate{
 					Title: "Invoice Requested",
-					Body:  "Order No: {{order_no}}\nCustomer: {{customer_label}}\nInvoice Title: {{invoice_title}}\nInvoice Note: {{invoice_note}}\nInvoice Amount: {{amount}} {{currency}}\nInvoice Email: {{invoice_email}}\nItems:\n{{items_summary}}",
+					Body:  "Order No: {{order_no}}\nCustomer: {{customer_label}}\nInvoice Title: {{invoice_title}}\nTax ID: {{invoice_tax_no}}\nInvoice Note: {{invoice_note}}\nInvoice Amount: {{amount}} {{currency}}\nInvoice Email: {{invoice_email}}\nItems:\n{{items_summary}}",
 				},
 			},
 			ManualFulfillmentPending: NotificationSceneTemplate{

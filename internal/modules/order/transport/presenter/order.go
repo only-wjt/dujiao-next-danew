@@ -10,6 +10,8 @@ import (
 	"github.com/dujiao-next/internal/shared/jsonmap"
 	"github.com/dujiao-next/internal/shared/jsonslice"
 	"github.com/dujiao-next/internal/shared/money"
+
+	"github.com/shopspring/decimal"
 )
 
 // OrderSummary 订单列表响应（精简字段）
@@ -76,9 +78,12 @@ type OrderDetail struct {
 	TotalAmount              money.Amount      `json:"total_amount"`
 	InvoiceRequested         bool              `json:"invoice_requested"`
 	InvoiceTitle             string            `json:"invoice_title,omitempty"`
+	InvoiceTaxNo             string            `json:"invoice_tax_no,omitempty"`
 	InvoiceNote              string            `json:"invoice_note,omitempty"`
 	InvoiceEmail             string            `json:"invoice_email,omitempty"`
 	InvoiceFeeAmount         money.Amount      `json:"invoice_fee_amount"`
+	PaymentFeeAmount         money.Amount      `json:"payment_fee_amount"`
+	ActualPaidAmount         money.Amount      `json:"actual_paid_amount"`
 	WalletPaidAmount         money.Amount      `json:"wallet_paid_amount"`
 	OnlinePaidAmount         money.Amount      `json:"online_paid_amount"`
 	RefundedAmount           money.Amount      `json:"refunded_amount"`
@@ -119,6 +124,7 @@ func NewOrderDetail(o *orderdomain.Order) OrderDetail {
 		TotalAmount:             o.TotalAmount,
 		InvoiceRequested:        o.InvoiceRequested,
 		InvoiceTitle:            o.InvoiceTitle,
+		InvoiceTaxNo:            o.InvoiceTaxNo,
 		InvoiceNote:             o.InvoiceNote,
 		InvoiceEmail:            o.InvoiceEmail,
 		InvoiceFeeAmount:        o.InvoiceFeeAmount,
@@ -145,7 +151,69 @@ func NewOrderDetail(o *orderdomain.Order) OrderDetail {
 	for i := range o.Children {
 		d.Children = append(d.Children, NewOrderDetail(&o.Children[i]))
 	}
+	ApplyPaymentFee(&d, decimal.Zero)
 	return d
+}
+
+// ApplyPaymentFee 写入买家承担的支付手续费，计算实付金额，
+// 并把父订单的开票加价与手续费按子订单金额比例分摊到子订单（尾差归最后一个子订单）。
+func ApplyPaymentFee(d *OrderDetail, paymentFee decimal.Decimal) {
+	if d == nil {
+		return
+	}
+	paymentFee = paymentFee.Round(2)
+	if paymentFee.IsNegative() {
+		paymentFee = decimal.Zero
+	}
+	d.PaymentFeeAmount = money.FromDecimal(paymentFee)
+	d.ActualPaidAmount = money.FromDecimal(d.TotalAmount.Decimal.Add(paymentFee).Round(2))
+	if len(d.Children) == 0 {
+		return
+	}
+	weights := make([]decimal.Decimal, len(d.Children))
+	for i := range d.Children {
+		weights[i] = d.Children[i].TotalAmount.Decimal
+	}
+	invoiceShares := allocateByWeight(d.InvoiceFeeAmount.Decimal, weights)
+	paymentShares := allocateByWeight(paymentFee, weights)
+	for i := range d.Children {
+		child := &d.Children[i]
+		child.InvoiceFeeAmount = money.FromDecimal(invoiceShares[i])
+		child.PaymentFeeAmount = money.FromDecimal(paymentShares[i])
+		child.ActualPaidAmount = money.FromDecimal(child.TotalAmount.Decimal.Add(invoiceShares[i]).Add(paymentShares[i]).Round(2))
+	}
+}
+
+func allocateByWeight(total decimal.Decimal, weights []decimal.Decimal) []decimal.Decimal {
+	shares := make([]decimal.Decimal, len(weights))
+	for i := range shares {
+		shares[i] = decimal.Zero
+	}
+	total = total.Round(2)
+	if len(weights) == 0 || !total.IsPositive() {
+		return shares
+	}
+	sum := decimal.Zero
+	for _, w := range weights {
+		if w.IsPositive() {
+			sum = sum.Add(w)
+		}
+	}
+	last := len(weights) - 1
+	if !sum.IsPositive() {
+		shares[last] = total
+		return shares
+	}
+	allocated := decimal.Zero
+	for i := 0; i < last; i++ {
+		if !weights[i].IsPositive() {
+			continue
+		}
+		shares[i] = total.Mul(weights[i]).Div(sum).Round(2)
+		allocated = allocated.Add(shares[i])
+	}
+	shares[last] = total.Sub(allocated)
+	return shares
 }
 
 // NewOrderDetailTruncated 同 NewOrderDetail，但额外截断交付内容。

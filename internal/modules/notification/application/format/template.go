@@ -103,6 +103,9 @@ func BuildInvoiceBlock(variables map[string]interface{}, locale string) string {
 	}
 	lines := []string{InvoiceNoticeLine(locale)}
 	lines = append(lines, localizedNotificationText(locale, "发票抬头：", "發票抬頭：", "Invoice Title: ")+notificationVariableText(variables["invoice_title"]))
+	if taxNo := notificationVariableText(variables["invoice_tax_no"]); taxNo != "" {
+		lines = append(lines, localizedNotificationText(locale, "税号：", "稅號：", "Tax ID: ")+taxNo)
+	}
 	if note := notificationVariableText(variables["invoice_note"]); note != "" {
 		lines = append(lines, localizedNotificationText(locale, "发票备注：", "發票備註：", "Invoice Note: ")+note)
 	}

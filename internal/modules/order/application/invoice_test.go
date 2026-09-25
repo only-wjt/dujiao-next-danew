@@ -39,13 +39,14 @@ func TestNormalizeInvoiceInputRequiresDetailsOnCreate(t *testing.T) {
 	got, err := NormalizeInvoiceInput(InvoiceInput{
 		Requested: true,
 		Title:     "  上海某某科技  ",
+		TaxNo:     " 91310000 ma1fl0000x ",
 		Note:      "  备注  ",
 		Email:     "  Billing@Example.com  ",
 	}, true)
 	if err != nil {
 		t.Fatalf("normalize: %v", err)
 	}
-	if !got.Requested || got.Title != "上海某某科技" || got.Note != "备注" || got.Email != "billing@example.com" {
+	if !got.Requested || got.Title != "上海某某科技" || got.TaxNo != "91310000MA1FL0000X" || got.Note != "备注" || got.Email != "billing@example.com" {
 		t.Fatalf("unexpected invoice: %#v", got)
 	}
 }

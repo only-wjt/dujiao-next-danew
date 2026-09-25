@@ -36,7 +36,9 @@
       <div v-if="hasDiscountAmount(item.wholesale_discount_amount)" class="text-destructive">{{ t('orderDetail.wholesaleDiscountLabel') }}：{{ formatDiscountMoney(item.wholesale_discount_amount, currency) }}</div>
       <div v-if="hasDiscountAmount(item.member_discount_amount)" class="text-destructive">{{ t('orderDetail.memberDiscountLabel') }}：{{ formatDiscountMoney(item.member_discount_amount, currency) }}</div>
       <div v-if="hasItemDiscount(item)" class="font-bold text-destructive">{{ t('orderDetail.itemDiscountTotalLabel') }}：{{ formatItemDiscountTotal(item, currency) }}</div>
-      <div class="mt-0.5 font-bold text-foreground">{{ t('orderDetail.itemPaidAmountLabel') }}：{{ formatItemPaidAmount(item, currency) }}</div>
+      <div v-if="hasAmount(invoiceFee)">{{ t('orderDetail.invoiceFeeLabel') }}：+{{ formatMoney(invoiceFee, currency) }}</div>
+      <div v-if="hasAmount(paymentFee)">{{ t('orderDetail.paymentFeeLabel') }}：+{{ formatMoney(paymentFee, currency) }}</div>
+      <div class="mt-0.5 font-bold text-foreground">{{ t('orderDetail.itemPaidAmountLabel') }}：{{ formatItemPaidAmount(item, currency, [invoiceFee, paymentFee]) }}</div>
     </div>
   </div>
 </template>
@@ -51,6 +53,8 @@ import { useOrderDisplayHelpers } from '../../../composables/useOrderDisplayHelp
 defineProps<{
   item: any
   currency?: string
+  invoiceFee?: string
+  paymentFee?: string
 }>()
 
 const { t } = useI18n()
@@ -58,5 +62,6 @@ const { t } = useI18n()
 const {
   getLocalizedText, orderItemImage, orderItemSkuText, fulfillmentTypeLabelText, manualSubmissionRows,
   formatMoney, hasDiscountAmount, formatDiscountMoney, hasItemDiscount, formatItemDiscountTotal, formatItemPaidAmount,
+  hasAmount,
 } = useOrderDisplayHelpers(ref<any>(null))
 </script>

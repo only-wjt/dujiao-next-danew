@@ -94,6 +94,7 @@ type CreateOrderRequest struct {
 	ManualFormData      map[string]jsonmap.JSON `json:"manual_form_data"`
 	InvoiceRequested    bool                    `json:"invoice_requested"`
 	InvoiceTitle        string                  `json:"invoice_title"`
+	InvoiceTaxNo        string                  `json:"invoice_tax_no"`
 	InvoiceNote         string                  `json:"invoice_note"`
 	InvoiceEmail        string                  `json:"invoice_email"`
 }
@@ -110,6 +111,7 @@ type CreateGuestOrderRequest struct {
 	CaptchaPayload      captchahttp.CaptchaPayloadRequest `json:"captcha_payload"`
 	InvoiceRequested    bool                              `json:"invoice_requested"`
 	InvoiceTitle        string                            `json:"invoice_title"`
+	InvoiceTaxNo        string                            `json:"invoice_tax_no"`
 	InvoiceNote         string                            `json:"invoice_note"`
 	InvoiceEmail        string                            `json:"invoice_email"`
 }
@@ -134,6 +136,7 @@ type CreateOrderInput struct {
 	ManualFormData      map[string]jsonmap.JSON
 	InvoiceRequested    bool
 	InvoiceTitle        string
+	InvoiceTaxNo        string
 	InvoiceNote         string
 	InvoiceEmail        string
 }
@@ -152,6 +155,7 @@ type CreateGuestOrderInput struct {
 	ManualFormData      map[string]jsonmap.JSON
 	InvoiceRequested    bool
 	InvoiceTitle        string
+	InvoiceTaxNo        string
 	InvoiceNote         string
 	InvoiceEmail        string
 }
@@ -231,6 +235,7 @@ func (h *PreviewHandler) PreviewOrder(c *gin.Context) {
 		ManualFormData:      req.ManualFormData,
 		InvoiceRequested:    req.InvoiceRequested,
 		InvoiceTitle:        req.InvoiceTitle,
+		InvoiceTaxNo:        req.InvoiceTaxNo,
 		InvoiceNote:         req.InvoiceNote,
 		InvoiceEmail:        req.InvoiceEmail,
 	})
@@ -262,6 +267,7 @@ func (h *PreviewHandler) PreviewGuestOrder(c *gin.Context) {
 		ManualFormData:      req.ManualFormData,
 		InvoiceRequested:    req.InvoiceRequested,
 		InvoiceTitle:        req.InvoiceTitle,
+		InvoiceTaxNo:        req.InvoiceTaxNo,
 		InvoiceNote:         req.InvoiceNote,
 		InvoiceEmail:        req.InvoiceEmail,
 	})

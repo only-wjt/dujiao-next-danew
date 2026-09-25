@@ -1,42 +1,50 @@
 <template>
   <div class="grid gap-[18px]">
+    <DeliveryReadyBanner :order="order" />
+
     <!-- 子订单（含卡密） -->
     <section v-if="order.children && order.children.length > 0" class="rounded-xl border bg-card p-[22px]">
       <h2 class="mb-4 text-lg font-bold">{{ t('orderDetail.childOrdersTitle') }}</h2>
       <div class="grid gap-4">
-        <div v-for="child in order.children" :key="child.id" class="rounded-lg border p-4">
+        <div v-for="child in order.children" :key="child.id || child.order_no" class="rounded-lg border p-4">
           <div class="flex flex-wrap items-start justify-between gap-3">
             <div>
               <div class="text-[13px] text-muted-foreground">{{ t('orderDetail.childOrderNo') }}：{{ child.order_no }}</div>
-              <div class="text-[13px] text-muted-foreground">{{ t('orderDetail.childOrderAmount') }}：{{ formatMoney(child.total_amount, child.currency || order.currency) }}</div>
+              <div class="text-[13px] text-muted-foreground">{{ t('orderDetail.childOrderAmount') }}：<span class="font-semibold text-foreground">{{ formatMoney(orderPaidAmount(child), child.currency || order.currency) }}</span></div>
             </div>
             <Badge :variant="statusVariant(resolvedChildStatus(child))" size="sm" class="rounded-full">{{ statusLabel(resolvedChildStatus(child)) }}</Badge>
           </div>
 
-          <h3 class="my-2.5 mt-4 text-sm font-bold">{{ t('orderDetail.childItemsTitle') }}</h3>
-          <div v-if="child.items && child.items.length" class="grid">
-            <VaultOrderItem v-for="(item, cidx) in child.items" :key="cidx" :item="item" :currency="child.currency || order.currency" />
-          </div>
-          <div v-else class="text-[13px] text-muted-foreground">{{ t('orderDetail.noItems') }}</div>
-
-          <div class="mt-3.5 border-t pt-3.5">
+          <div class="mt-4 scroll-mt-24" :data-delivery-anchor="child.fulfillment?.status === 'delivered' ? '' : undefined">
             <VaultOrderFulfillment
               v-if="child.fulfillment"
-              :title="t('orderDetail.childFulfillmentTitle')"
               :fulfillment="child.fulfillment"
               :items="child.items"
               :order-no="child.order_no || order.order_no"
               :downloading="fulfillmentDownloading"
               @download="emit('download', $event)"
             />
-            <div v-else class="text-[13px] text-muted-foreground">{{ t('orderDetail.childFulfillmentEmpty') }}</div>
+            <div v-else class="rounded-md border border-dashed px-3 py-2.5 text-[13px] text-muted-foreground">{{ t('orderDetail.childFulfillmentEmpty') }}</div>
           </div>
+
+          <h3 class="my-2.5 mt-5 border-t pt-4 text-sm font-bold">{{ t('orderDetail.childItemsTitle') }}</h3>
+          <div v-if="child.items && child.items.length" class="grid">
+            <VaultOrderItem
+              v-for="(item, cidx) in child.items"
+              :key="cidx"
+              :item="item"
+              :currency="child.currency || order.currency"
+              :invoice-fee="child.items.length === 1 ? child.invoice_fee_amount : undefined"
+              :payment-fee="child.items.length === 1 ? child.payment_fee_amount : undefined"
+            />
+          </div>
+          <div v-else class="text-[13px] text-muted-foreground">{{ t('orderDetail.noItems') }}</div>
         </div>
       </div>
     </section>
 
     <!-- 主订单发货（含卡密） -->
-    <section v-if="order.fulfillment" class="rounded-xl border bg-card p-[22px]">
+    <section v-if="order.fulfillment" class="scroll-mt-24 rounded-xl border bg-card p-[22px]" :data-delivery-anchor="order.fulfillment.status === 'delivered' ? '' : undefined">
       <h2 class="mb-4 text-lg font-bold">{{ t('orderDetail.fulfillmentTitle') }}</h2>
       <VaultOrderFulfillment
         :fulfillment="order.fulfillment"
@@ -68,9 +76,17 @@
           <div class="text-xs text-muted-foreground">{{ t('orderDetail.amountDiscount') }}</div>
           <div class="mt-1.5 font-bold tabular-nums" :class="{ 'text-destructive': hasDiscountAmount(order.discount_amount) }">{{ formatDiscountMoney(order.discount_amount, order.currency) }}</div>
         </div>
-        <div class="rounded-md border bg-secondary px-3.5 py-3">
+        <div v-if="hasAmount(order.invoice_fee_amount)" class="rounded-md border bg-secondary px-3.5 py-3">
+          <div class="text-xs text-muted-foreground">{{ t('orderDetail.invoiceFeeLabel') }}</div>
+          <div class="mt-1.5 font-bold tabular-nums">+{{ formatMoney(order.invoice_fee_amount, order.currency) }}</div>
+        </div>
+        <div v-if="hasAmount(order.payment_fee_amount)" class="rounded-md border bg-secondary px-3.5 py-3">
+          <div class="text-xs text-muted-foreground">{{ t('orderDetail.paymentFeeLabel') }}</div>
+          <div class="mt-1.5 font-bold tabular-nums">+{{ formatMoney(order.payment_fee_amount, order.currency) }}</div>
+        </div>
+        <div class="rounded-md border border-primary/40 bg-primary/5 px-3.5 py-3">
           <div class="text-xs text-muted-foreground">{{ t('orderDetail.amountTotal') }}</div>
-          <div class="mt-1.5 font-bold tabular-nums">{{ formatMoney(order.total_amount, order.currency) }}</div>
+          <div class="mt-1.5 font-bold tabular-nums">{{ formatMoney(orderPaidAmount(order), order.currency) }}</div>
         </div>
         <template v-if="variant === 'user'">
           <div v-if="hasAmount(order.wallet_paid_amount)" class="rounded-md border bg-secondary px-3.5 py-3">
@@ -144,6 +160,7 @@
 import { toRef } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Badge } from '@/components/ui/badge'
+import DeliveryReadyBanner from '../../../components/order/DeliveryReadyBanner.vue'
 import VaultOrderItem from './VaultOrderItem.vue'
 import VaultOrderFulfillment from './VaultOrderFulfillment.vue'
 import { useOrderDisplayHelpers } from '../../../composables/useOrderDisplayHelpers'
@@ -163,6 +180,6 @@ const { t } = useI18n()
 const {
   showTimeCard, showRefundRecordsCard, refundRecords, resolvedChildStatus,
   statusLabel, statusVariant, formatDate, refundReasonText,
-  formatMoney, formatDiscountMoney, hasDiscountAmount, hasAmount,
+  formatMoney, formatDiscountMoney, hasDiscountAmount, hasAmount, orderPaidAmount,
 } = useOrderDisplayHelpers(toRef(props, 'order'))
 </script>

@@ -23,16 +23,17 @@ type GuestOrderQuery interface {
 
 // GuestHandler 处理前台游客订单只读 HTTP。
 type GuestHandler struct {
-	orders   GuestOrderQuery
-	payments PaymentChannelPolicy
-	refunds  RefundRecordDirectory
+	orders         GuestOrderQuery
+	payments       PaymentChannelPolicy
+	refunds        RefundRecordDirectory
+	paymentRecords PaymentDirectory
 }
 
-func NewGuestHandler(orders GuestOrderQuery, payments PaymentChannelPolicy, refunds RefundRecordDirectory) *GuestHandler {
+func NewGuestHandler(orders GuestOrderQuery, payments PaymentChannelPolicy, refunds RefundRecordDirectory, paymentRecords PaymentDirectory) *GuestHandler {
 	if orders == nil {
 		panic("order guest handler: orders is nil")
 	}
-	return &GuestHandler{orders: orders, payments: payments, refunds: refunds}
+	return &GuestHandler{orders: orders, payments: payments, refunds: refunds, paymentRecords: paymentRecords}
 }
 
 // ListGuestOrders 获取游客订单列表
@@ -113,6 +114,7 @@ func (h *GuestHandler) GetGuestOrderByOrderNo(c *gin.Context) {
 	orderDetail := orderpresenter.NewOrderDetailTruncated(order)
 	enrichOrderWithAllowedChannels(h.payments, order, &orderDetail)
 	enrichOrderWithRefundRecords(h.refunds, order, &orderDetail)
+	enrichOrderWithPaymentFee(h.paymentRecords, order, &orderDetail)
 	response.Success(c, orderDetail)
 }
 

@@ -264,6 +264,7 @@ export function useCheckout() {
   const invoiceForm = reactive({
     requested: false,
     title: '',
+    taxNo: '',
     note: '',
     email: '',
   })
@@ -717,6 +718,7 @@ export function useCheckout() {
     manual_form_data: buildManualFormDataPayload(),
     invoice_requested: invoiceForm.requested || undefined,
     invoice_title: invoiceForm.requested ? invoiceForm.title.trim() : undefined,
+    invoice_tax_no: invoiceForm.requested ? invoiceForm.taxNo.trim() : undefined,
     invoice_note: invoiceForm.requested ? invoiceForm.note.trim() : undefined,
     invoice_email: invoiceForm.requested ? invoiceForm.email.trim() : undefined,
   })

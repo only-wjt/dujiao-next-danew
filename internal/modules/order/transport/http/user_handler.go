@@ -70,17 +70,18 @@ type OrderPaymentChannelsRequest struct {
 
 // UserHandler 处理前台用户订单 HTTP（只读 + 取消 + 支付渠道查询）。
 type UserHandler struct {
-	orders   UserOrderQuery
-	payments PaymentChannelPolicy
-	refunds  RefundRecordDirectory
-	users    UserLookup
+	orders         UserOrderQuery
+	payments       PaymentChannelPolicy
+	refunds        RefundRecordDirectory
+	users          UserLookup
+	paymentRecords PaymentDirectory
 }
 
-func NewUserHandler(orders UserOrderQuery, payments PaymentChannelPolicy, refunds RefundRecordDirectory, users UserLookup) *UserHandler {
+func NewUserHandler(orders UserOrderQuery, payments PaymentChannelPolicy, refunds RefundRecordDirectory, users UserLookup, paymentRecords PaymentDirectory) *UserHandler {
 	if orders == nil {
 		panic("order user handler: orders is nil")
 	}
-	return &UserHandler{orders: orders, payments: payments, refunds: refunds, users: users}
+	return &UserHandler{orders: orders, payments: payments, refunds: refunds, users: users, paymentRecords: paymentRecords}
 }
 
 func tenantFromRequest(c *gin.Context) reseller.TenantContext {
@@ -172,6 +173,7 @@ func (h *UserHandler) GetOrderByOrderNo(c *gin.Context) {
 	orderDetail := orderpresenter.NewOrderDetailTruncated(order)
 	enrichOrderWithAllowedChannels(h.payments, order, &orderDetail)
 	enrichOrderWithRefundRecords(h.refunds, order, &orderDetail)
+	enrichOrderWithPaymentFee(h.paymentRecords, order, &orderDetail)
 	response.Success(c, orderDetail)
 }
 
@@ -369,6 +371,33 @@ func enrichOrderWithAllowedChannels(payments PaymentChannelPolicy, order *orderd
 	if len(allowed) > 0 {
 		detail.AllowedPaymentChannelIDs = allowed
 	}
+}
+
+// enrichOrderWithPaymentFee 汇总买家承担的支付通道手续费，用于展示与实际扣款一致的实付金额。
+func enrichOrderWithPaymentFee(records PaymentDirectory, order *orderdomain.Order, detail *orderpresenter.OrderDetail) {
+	if records == nil || order == nil || detail == nil || order.ID == 0 || order.PaidAt == nil {
+		return
+	}
+	payments, err := records.ListByOrderID(order.ID)
+	if err != nil {
+		logger.Warnw("public_order_payment_fee_fetch_failed",
+			"order_id", order.ID,
+			"order_no", order.OrderNo,
+			"error", err,
+		)
+		return
+	}
+	fee := decimal.Zero
+	for _, payment := range payments {
+		if payment.Status != constants.PaymentStatusSuccess {
+			continue
+		}
+		switch payment.FeePolicy {
+		case constants.PaymentFeePolicyCustomerSurcharge, constants.PaymentFeePolicyLegacyCustomerSurcharge:
+			fee = fee.Add(payment.FeeAmount.Decimal)
+		}
+	}
+	orderpresenter.ApplyPaymentFee(detail, fee)
 }
 
 func collectRefundRelevantOrderIDs(order *orderdomain.Order) []uint {

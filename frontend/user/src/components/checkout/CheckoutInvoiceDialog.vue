@@ -9,17 +9,23 @@
     </label>
 
     <div v-if="form.requested" class="mt-4 space-y-3">
-      <div class="space-y-1.5">
-        <label class="text-xs font-medium text-muted-foreground">{{ t('checkout.invoice.nameLabel') }}</label>
-        <Input v-model="form.title" :placeholder="t('checkout.invoice.namePlaceholder')" />
-      </div>
-      <div class="space-y-1.5">
-        <label class="text-xs font-medium text-muted-foreground">{{ t('checkout.invoice.emailLabel') }}</label>
-        <Input v-model="form.email" type="email" :placeholder="t('checkout.invoice.emailPlaceholder')" />
-      </div>
-      <div class="space-y-1.5">
-        <label class="text-xs font-medium text-muted-foreground">{{ t('checkout.invoice.noteLabel') }}</label>
-        <Textarea v-model="form.note" rows="3" :placeholder="t('checkout.invoice.notePlaceholder')" />
+      <div class="grid gap-3 sm:grid-cols-2">
+        <div class="space-y-1.5">
+          <label class="text-xs font-medium text-muted-foreground">{{ t('checkout.invoice.nameLabel') }} <span class="text-destructive">*</span></label>
+          <Input v-model="form.title" maxlength="200" :placeholder="t('checkout.invoice.namePlaceholder')" />
+        </div>
+        <div class="space-y-1.5">
+          <label class="text-xs font-medium text-muted-foreground">{{ t('checkout.invoice.taxNoLabel') }}</label>
+          <Input v-model="form.taxNo" maxlength="64" autocomplete="off" :placeholder="t('checkout.invoice.taxNoPlaceholder')" />
+        </div>
+        <div class="space-y-1.5">
+          <label class="text-xs font-medium text-muted-foreground">{{ t('checkout.invoice.emailLabel') }} <span class="text-destructive">*</span></label>
+          <Input v-model="form.email" type="email" :placeholder="t('checkout.invoice.emailPlaceholder')" />
+        </div>
+        <div class="space-y-1.5">
+          <label class="text-xs font-medium text-muted-foreground">{{ t('checkout.invoice.noteLabel') }}</label>
+          <Input v-model="form.note" maxlength="500" :placeholder="t('checkout.invoice.notePlaceholder')" />
+        </div>
       </div>
       <div v-if="feeVisible" class="flex items-center justify-between text-sm text-muted-foreground">
         <span>{{ t('checkout.invoice.feeLabel') }}</span>
@@ -43,12 +49,12 @@
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
 
 const props = defineProps<{
   form: {
     requested: boolean
     title: string
+    taxNo: string
     note: string
     email: string
   }

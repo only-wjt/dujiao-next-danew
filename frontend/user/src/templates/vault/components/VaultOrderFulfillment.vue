@@ -1,47 +1,78 @@
 <template>
-  <div class="grid gap-2">
-    <div class="flex flex-wrap items-center justify-between gap-3">
-      <h3 v-if="title" class="text-[15px] font-bold">{{ title }}</h3>
-      <div class="flex flex-wrap gap-2">
-        <Button
-          v-if="isFulfillmentTruncated(fulfillment)"
-          type="button"
-          variant="outline"
-          size="sm"
-          class="rounded-full"
-          :disabled="downloading"
-          @click="emit('download', orderNo)"
-        >
-          <Download /> {{ downloading ? t('orderDetail.fulfillmentDownloading') : t('orderDetail.fulfillmentDownload') }}
-        </Button>
-        <Button
-          v-if="fulfillment.status === 'delivered' && !isFulfillmentTruncated(fulfillment)"
-          type="button"
-          :variant="fulfillmentCopied ? 'default' : 'outline'"
-          size="sm"
-          class="rounded-full"
-          :class="fulfillmentCopied ? 'bg-[color:var(--teal-strong)] text-white hover:bg-[color:var(--teal-strong)]/90' : ''"
-          @click="handleCopyFulfillment(fulfillment)"
-        >
-          <component :is="fulfillmentCopied ? Check : Copy" /> {{ fulfillmentCopied ? t('orderDetail.fulfillmentCopied') : t('orderDetail.fulfillmentCopy') }}
-        </Button>
+  <div class="grid gap-2.5">
+    <h3 v-if="title" class="text-[15px] font-bold">{{ title }}</h3>
+
+    <div
+      class="rounded-lg p-4"
+      :class="delivered ? 'border-2 border-primary/60 bg-primary/5 shadow-sm' : 'border bg-secondary'"
+    >
+      <div class="flex flex-wrap items-start justify-between gap-3">
+        <div class="min-w-0">
+          <div class="flex items-center gap-2 text-base font-bold" :class="delivered ? 'text-primary' : 'text-foreground'">
+            <KeyRound class="h-5 w-5 flex-none" />
+            <span>{{ t('orderDetail.deliveryContentTitle') }}</span>
+          </div>
+          <p v-if="delivered" class="mt-1 text-[13px] text-muted-foreground">{{ t('orderDetail.deliveryContentHint') }}</p>
+        </div>
+        <div class="flex flex-wrap gap-2">
+          <Button
+            v-if="isFulfillmentTruncated(fulfillment)"
+            type="button"
+            size="sm"
+            class="rounded-full"
+            :disabled="downloading"
+            @click="emit('download', orderNo)"
+          >
+            <Download /> {{ downloading ? t('orderDetail.fulfillmentDownloading') : t('orderDetail.fulfillmentDownload') }}
+          </Button>
+          <Button
+            v-if="delivered && !isFulfillmentTruncated(fulfillment)"
+            type="button"
+            size="sm"
+            class="rounded-full"
+            :class="fulfillmentCopied ? 'bg-[color:var(--teal-strong)] text-white hover:bg-[color:var(--teal-strong)]/90' : ''"
+            @click="handleCopyFulfillment(fulfillment)"
+          >
+            <component :is="fulfillmentCopied ? Check : Copy" /> {{ fulfillmentCopied ? t('orderDetail.fulfillmentCopied') : t('orderDetail.fulfillmentCopyAll') }}
+          </Button>
+        </div>
       </div>
+
+      <template v-if="isFulfillmentTruncated(fulfillment)">
+        <div class="mt-3 text-xs text-muted-foreground">{{ t('orderDetail.fulfillmentTotalLines', { count: fulfillment.payload_line_count }) }}</div>
+        <div class="mt-1.5 rounded-sm bg-warning/10 px-2.5 py-2 text-xs font-semibold text-warning">{{ t('orderDetail.fulfillmentTruncatedHint') }}</div>
+        <pre class="mt-2 max-h-[260px] overflow-y-auto whitespace-pre-wrap break-all rounded-md border bg-background p-3 font-mono text-[14px] font-semibold text-foreground">{{ fulfillment.payload }}</pre>
+      </template>
+      <div v-else-if="displayLines.length" class="mt-3 grid gap-2">
+        <div
+          v-for="(line, index) in displayLines"
+          :key="index"
+          class="flex items-center justify-between gap-3 rounded-md border bg-background px-3 py-2.5"
+        >
+          <span class="min-w-0 select-all whitespace-pre-wrap break-all font-mono text-[15px] font-semibold leading-relaxed text-foreground">{{ line }}</span>
+          <Button
+            v-if="delivered"
+            type="button"
+            variant="ghost"
+            size="sm"
+            class="h-8 flex-none rounded-full px-2.5 text-primary"
+            :aria-label="t('orderDetail.fulfillmentCopy')"
+            @click="handleCopyLine(line, index)"
+          >
+            <component :is="copiedLineIndex === index ? Check : Copy" class="h-4 w-4" />
+            <span class="max-[480px]:hidden">{{ copiedLineIndex === index ? t('orderDetail.fulfillmentCopied') : t('orderDetail.fulfillmentCopyLine') }}</span>
+          </Button>
+        </div>
+      </div>
+      <div v-else class="mt-3 text-[13px] text-muted-foreground">{{ fulfillmentStatusLabelText(fulfillment.status) }}</div>
     </div>
 
-    <div class="flex justify-between gap-3 text-[13px]"><span class="text-muted-foreground">{{ t('orderDetail.fulfillmentType') }}</span><span class="font-semibold text-foreground">{{ fulfillmentTypeLabelText(fulfillment.type) }}</span></div>
-    <div class="flex justify-between gap-3 text-[13px]"><span class="text-muted-foreground">{{ t('orderDetail.fulfillmentStatus') }}</span><span class="font-semibold text-foreground">{{ fulfillmentStatusLabelText(fulfillment.status) }}</span></div>
-
-    <template v-if="isFulfillmentTruncated(fulfillment)">
-      <div class="text-xs text-muted-foreground">{{ t('orderDetail.fulfillmentTotalLines', { count: fulfillment.payload_line_count }) }}</div>
-      <div class="rounded-sm bg-warning/10 px-2.5 py-2 text-xs font-semibold text-warning">{{ t('orderDetail.fulfillmentTruncatedHint') }}</div>
-      <pre class="mt-1 max-h-[260px] overflow-y-auto whitespace-pre-wrap break-all rounded-sm border bg-secondary p-3 font-mono text-[12.5px] text-muted-foreground">{{ fulfillment.payload }}</pre>
-    </template>
-    <div v-else-if="fulfillmentDeliveryLines(fulfillment).length" class="mt-1 grid gap-0.5 rounded-sm border bg-secondary p-3 font-mono text-[12.5px] text-muted-foreground">
-      <div v-for="(line, index) in fulfillmentDeliveryLines(fulfillment)" :key="index" class="whitespace-pre-wrap break-all">{{ line }}</div>
+    <div class="flex flex-wrap gap-x-5 gap-y-1 text-[12.5px] text-muted-foreground">
+      <span>{{ t('orderDetail.fulfillmentType') }}：<span class="font-semibold text-foreground">{{ fulfillmentTypeLabelText(fulfillment.type) }}</span></span>
+      <span>{{ t('orderDetail.fulfillmentStatus') }}：<span class="font-semibold text-foreground">{{ fulfillmentStatusLabelText(fulfillment.status) }}</span></span>
     </div>
-    <pre v-else class="mt-1 whitespace-pre-wrap break-all rounded-sm border bg-secondary p-3 font-mono text-[12.5px] text-muted-foreground">{{ fulfillment.payload }}</pre>
 
-    <div v-if="fulfillment.status === 'delivered' && instructionBlocks(items).length" class="mt-1.5 grid gap-2.5">
+    <div v-if="delivered && instructionBlocks(items).length" class="mt-1 grid gap-2.5">
       <div v-for="(block, bi) in instructionBlocks(items)" :key="bi" class="rounded-md border border-primary/20 bg-primary/10 p-3.5">
         <div class="mb-2 flex items-center gap-2 text-[13px] font-bold text-primary"><Info class="h-4 w-4" /> {{ t('orderDetail.instructionsTitle') }}</div>
         <div class="prose prose-sm max-w-none dark:prose-invert prose-a:text-primary prose-img:rounded-sm" v-html="block.html"></div>
@@ -51,13 +82,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { Copy, Check, Download, Info } from 'lucide-vue-next'
+import { Copy, Check, Download, Info, KeyRound } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import { useOrderDisplayHelpers } from '../../../composables/useOrderDisplayHelpers'
 
-defineProps<{
+const props = defineProps<{
   title?: string
   fulfillment: any
   items?: any[]
@@ -74,5 +105,17 @@ const { t } = useI18n()
 const {
   isFulfillmentTruncated, fulfillmentDeliveryLines, instructionBlocks,
   fulfillmentTypeLabelText, fulfillmentStatusLabelText, fulfillmentCopied, handleCopyFulfillment,
+  copiedLineIndex, handleCopyLine,
 } = useOrderDisplayHelpers(ref<any>(null))
+
+const delivered = computed(() => props.fulfillment?.status === 'delivered')
+
+const displayLines = computed(() => {
+  const deliveryLines = fulfillmentDeliveryLines(props.fulfillment)
+  if (deliveryLines.length) return deliveryLines
+  return String(props.fulfillment?.payload || '')
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean)
+})
 </script>

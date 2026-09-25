@@ -24,6 +24,8 @@ export function useOrderDisplayHelpers(order: Ref<any>) {
 
   const fulfillmentCopied = ref(false)
   let fulfillmentCopiedTimer: ReturnType<typeof setTimeout> | null = null
+  const copiedLineIndex = ref(-1)
+  let copiedLineTimer: ReturnType<typeof setTimeout> | null = null
 
   const showTimeCard = computed(() => {
     if (!order.value) return false
@@ -169,8 +171,17 @@ export function useOrderDisplayHelpers(order: Ref<any>) {
     return Math.max(0, paidCents)
   }
 
-  const formatItemPaidAmount = (item: any, currency?: string) => {
-    return formatMoney(centsToAmount(itemPaidAmountCents(item)), currency)
+  const formatItemPaidAmount = (item: any, currency?: string, extraFees: Array<string | undefined> = []) => {
+    const extraCents = extraFees.reduce((sum, fee) => sum + positiveAmountCents(fee), 0)
+    return formatMoney(centsToAmount(itemPaidAmountCents(item) + extraCents), currency)
+  }
+
+  const orderPaidAmount = (target: any) => {
+    const actual = target?.actual_paid_amount
+    if (actual !== null && actual !== undefined && actual !== '' && amountToCents(actual) !== null) {
+      return actual
+    }
+    return target?.total_amount
   }
 
   const hasAmount = (amount?: string) => {
@@ -295,6 +306,17 @@ export function useOrderDisplayHelpers(order: Ref<any>) {
     } catch {}
   }
 
+  const handleCopyLine = async (text: string, index: number) => {
+    const value = String(text || '').trim()
+    if (!value) return
+    try {
+      await copyText(value)
+      copiedLineIndex.value = index
+      if (copiedLineTimer) clearTimeout(copiedLineTimer)
+      copiedLineTimer = setTimeout(() => { copiedLineIndex.value = -1 }, 1500)
+    } catch {}
+  }
+
   return {
     // 卡片显隐
     showTimeCard,
@@ -321,11 +343,14 @@ export function useOrderDisplayHelpers(order: Ref<any>) {
     hasItemDiscount,
     formatItemDiscountTotal,
     formatItemPaidAmount,
+    orderPaidAmount,
     manualSubmissionRows,
     fulfillmentDeliveryLines,
     instructionBlocks,
     // 发货复制态
     fulfillmentCopied,
     handleCopyFulfillment,
+    copiedLineIndex,
+    handleCopyLine,
   }
 }

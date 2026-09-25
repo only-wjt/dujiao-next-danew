@@ -169,6 +169,12 @@ export interface AdminOrder {
   wallet_paid_amount: number
   online_paid_amount: number
   refunded_amount: number
+  invoice_requested?: boolean
+  invoice_title?: string
+  invoice_tax_no?: string
+  invoice_note?: string
+  invoice_email?: string
+  invoice_fee_amount?: number | string
   coupon_id?: number
   coupon_code?: string
   promotion_id?: number
