@@ -109,6 +109,12 @@ const routes = [
         meta: { permission: 'GET:/admin/settings' },
       },
       {
+        path: 'settings/folio',
+        name: 'folio-settings',
+        component: () => import('@/views/admin/FolioSettings.vue'),
+        meta: { permission: 'GET:/admin/settings/folio' },
+      },
+      {
         path: 'users',
         name: 'users',
         component: () => import('@/views/admin/Users.vue'),

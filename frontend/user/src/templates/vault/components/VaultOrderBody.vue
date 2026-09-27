@@ -113,6 +113,31 @@
       </div>
     </section>
 
+    <!-- 开票状态 -->
+    <section v-if="order.invoice_requested" class="rounded-xl border bg-card p-[22px]">
+      <h2 class="mb-4 text-lg font-bold">{{ t('orderDetail.invoiceTitle') }}</h2>
+      <div class="grid gap-3 grid-cols-[repeat(auto-fill,minmax(180px,1fr))]">
+        <div class="rounded-md border bg-secondary px-3.5 py-3">
+          <div class="text-xs text-muted-foreground">{{ t('orderDetail.invoiceIssueStatus') }}</div>
+          <div class="mt-1.5 font-bold">
+            {{ order.invoice_status === 'issued' || order.invoice_no ? t('orderDetail.invoiceIssued') : t('orderDetail.invoiceNotIssued') }}
+          </div>
+        </div>
+        <div v-if="order.invoice_no" class="rounded-md border bg-secondary px-3.5 py-3">
+          <div class="text-xs text-muted-foreground">{{ t('orderDetail.invoiceNo') }}</div>
+          <div class="mt-1.5 font-bold tabular-nums break-all">{{ order.invoice_no }}</div>
+        </div>
+        <div v-if="order.invoice_title" class="rounded-md border bg-secondary px-3.5 py-3">
+          <div class="text-xs text-muted-foreground">{{ t('orderDetail.invoiceName') }}</div>
+          <div class="mt-1.5 font-bold break-all">{{ order.invoice_title }}</div>
+        </div>
+        <div v-if="order.invoice_email" class="rounded-md border bg-secondary px-3.5 py-3">
+          <div class="text-xs text-muted-foreground">{{ t('orderDetail.invoiceEmail') }}</div>
+          <div class="mt-1.5 font-bold break-all">{{ order.invoice_email }}</div>
+        </div>
+      </div>
+    </section>
+
     <!-- 退款记录 -->
     <section v-if="showRefundRecordsCard" class="rounded-xl border bg-card p-[22px]">
       <h2 class="mb-4 text-lg font-bold">{{ t('orderDetail.refundRecordsTitle') }}</h2>

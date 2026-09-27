@@ -3,7 +3,9 @@ package container
 import (
 	catalogmappingbootstrap "github.com/dujiao-next/internal/bootstrap/catalogmapping"
 	telegrambroadcast "github.com/dujiao-next/internal/bootstrap/telegrambroadcast"
+	"github.com/dujiao-next/internal/config"
 	"github.com/dujiao-next/internal/logger"
+	"github.com/dujiao-next/internal/queue"
 	apicredentialapp "github.com/dujiao-next/internal/modules/apicredential/application"
 	auditlogapp "github.com/dujiao-next/internal/modules/auditlog/application"
 	channelclientapp "github.com/dujiao-next/internal/modules/channelclient/application"
@@ -113,6 +115,21 @@ func (c *Container) initIntegrationServices() {
 		PaymentProviderRegistry: c.PaymentProviderRegistry,
 		ResellerAccounting:      c.ResellerAccountingLedger,
 	})
+	if c.Config != nil && c.QueueClient != nil {
+		qc := c.QueueClient
+		settings := c.SettingService
+		cfg := c.Config
+		c.PaymentService.FolioPush = func(orderID uint) {
+			folioCfg := cfg.Folio
+			if settings != nil {
+				folioCfg = settings.ResolveFolioConfig(cfg.Folio)
+			}
+			if !config.FolioEnabled(folioCfg) {
+				return
+			}
+			_ = qc.EnqueueFolioInvoice(queue.FolioInvoicePayload{OrderID: orderID})
+		}
+	}
 	c.ProcurementOrderService = procurementapp.NewService(procurementapp.Options{
 		Repository:         c.ProcurementOrderRepo,
 		Orders:             procurementorder.New(c.OrderStore),

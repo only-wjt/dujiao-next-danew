@@ -43,6 +43,9 @@ func (s *PaymentService) enqueueOrderPaidAsync(order *orderdomain.Order, payment
 			)
 		}
 	}
+	if s.FolioPush != nil && order.InvoiceRequested && order.ParentID == nil {
+		s.FolioPush(order.ID)
+	}
 	s.enqueueOrderPaidNotificationAsync(order, payment, log)
 	s.enqueueOrderPaidBotNotifyAsync(order, log)
 

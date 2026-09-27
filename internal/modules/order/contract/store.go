@@ -20,6 +20,8 @@ import (
 type Store interface {
 	Create(order *orderdomain.Order, items []orderdomain.OrderItem) error
 	GetByID(id uint) (*orderdomain.Order, error)
+	GetByOrderNo(orderNo string) (*orderdomain.Order, error)
+	ListInvoiceRequested(paidFrom, paidTo *time.Time, page, pageSize int) ([]orderdomain.Order, int64, error)
 	GetByIDs(ids []uint) ([]orderdomain.Order, error)
 	ResolveReceiverEmailByOrderID(orderID uint) (string, error)
 	GetByIDAndUser(id uint, userID uint) (*orderdomain.Order, error)

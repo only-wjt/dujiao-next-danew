@@ -33,6 +33,18 @@ type Config struct {
 	Captcha      CaptchaConfig      `mapstructure:"captcha"`
 	Web          WebConfig          `mapstructure:"web"`
 	Reseller     ResellerConfig     `mapstructure:"reseller"`
+	Folio        FolioConfig        `mapstructure:"folio"`
+}
+
+// FolioConfig 是对接 Folio 开票服务的配置。BaseURL 与 Secret 均非空才推送。
+type FolioConfig struct {
+	BaseURL string `mapstructure:"base_url"`
+	Secret  string `mapstructure:"secret"`
+}
+
+// FolioEnabled 返回是否启用 Folio 推单/退款通知。
+func FolioEnabled(cfg FolioConfig) bool {
+	return strings.TrimSpace(cfg.BaseURL) != "" && strings.TrimSpace(cfg.Secret) != ""
 }
 
 // AppConfig 应用级配置
@@ -428,6 +440,8 @@ func Load() *Config {
 	viper.SetDefault("reseller.subdomain_base", "")
 	viper.SetDefault("reseller.self_apply_enabled", true)
 	viper.SetDefault("reseller.settlement_confirm_days", 7)
+	viper.SetDefault("folio.base_url", "")
+	viper.SetDefault("folio.secret", "")
 
 	// 环境变量支持
 	viper.AutomaticEnv()                                   // 自动读取环境变量

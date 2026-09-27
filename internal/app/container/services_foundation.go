@@ -23,6 +23,7 @@ import (
 	orderapp "github.com/dujiao-next/internal/modules/order/application"
 	reseller "github.com/dujiao-next/internal/modules/reseller/application"
 	settingsapp "github.com/dujiao-next/internal/modules/settings/application"
+	settingsintegration "github.com/dujiao-next/internal/modules/settings/schema/integration"
 	settingsmessaging "github.com/dujiao-next/internal/modules/settings/schema/messaging"
 	settingssecurity "github.com/dujiao-next/internal/modules/settings/schema/security"
 	uploadapp "github.com/dujiao-next/internal/modules/upload/application"
@@ -97,6 +98,13 @@ func (c *Container) loadRuntimeSettings() {
 		)
 	} else {
 		c.Config.GoogleAuth = settingssecurity.GoogleAuthSettingToConfig(googleAuthSetting)
+	}
+
+	folioSetting, err := c.SettingService.GetFolioSetting(c.Config.Folio)
+	if err != nil {
+		logger.Warnw("provider_load_folio_setting_failed", "error", err)
+	} else {
+		c.Config.Folio = settingsintegration.FolioSettingToConfig(folioSetting)
 	}
 }
 

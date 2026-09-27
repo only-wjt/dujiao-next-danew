@@ -237,6 +237,30 @@ func BuildServerConfig(cfg *config.QueueConfig) (asynq.RedisClientOpt, asynq.Con
 	}
 }
 
+func (c *Client) EnqueueFolioInvoice(payload FolioInvoicePayload) error {
+	if c == nil || !c.Enabled() {
+		return nil
+	}
+	task, err := NewFolioInvoiceTask(payload)
+	if err != nil {
+		return err
+	}
+	_, err = c.client.Enqueue(task, asynq.Queue(c.defaultQueue), asynq.MaxRetry(8))
+	return err
+}
+
+func (c *Client) EnqueueFolioRefund(payload FolioRefundPayload) error {
+	if c == nil || !c.Enabled() {
+		return nil
+	}
+	task, err := NewFolioRefundTask(payload)
+	if err != nil {
+		return err
+	}
+	_, err = c.client.Enqueue(task, asynq.Queue(c.defaultQueue), asynq.MaxRetry(8))
+	return err
+}
+
 func buildRedisOpt(cfg *config.QueueConfig) asynq.RedisClientOpt {
 	host := "127.0.0.1"
 	port := 6379

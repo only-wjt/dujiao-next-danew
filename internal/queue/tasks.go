@@ -39,7 +39,35 @@ const (
 	TaskBotNotify = constants.TaskBotNotify
 	// TaskTelegramBroadcast Telegram 群发任务
 	TaskTelegramBroadcast = constants.TaskTelegramBroadcast
+	TaskFolioInvoice      = constants.TaskFolioInvoice
+	TaskFolioRefund       = constants.TaskFolioRefund
 )
+
+type FolioInvoicePayload struct {
+	OrderID uint `json:"order_id"`
+}
+
+type FolioRefundPayload struct {
+	OrderID  uint `json:"order_id"`
+	RecordID uint `json:"record_id"`
+	Full     bool `json:"full"`
+}
+
+func NewFolioInvoiceTask(payload FolioInvoicePayload) (*asynq.Task, error) {
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return nil, err
+	}
+	return asynq.NewTask(TaskFolioInvoice, body), nil
+}
+
+func NewFolioRefundTask(payload FolioRefundPayload) (*asynq.Task, error) {
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return nil, err
+	}
+	return asynq.NewTask(TaskFolioRefund, body), nil
+}
 
 // OrderStatusEmailPayload 订单状态邮件任务载荷
 type OrderStatusEmailPayload struct {

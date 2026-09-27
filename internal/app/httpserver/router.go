@@ -19,6 +19,7 @@ import (
 	channeluserwiring "github.com/dujiao-next/internal/bootstrap/channeluser"
 	fulfillmentwiring "github.com/dujiao-next/internal/bootstrap/fulfillment"
 	orderwiring "github.com/dujiao-next/internal/bootstrap/order"
+	orderhttp "github.com/dujiao-next/internal/modules/order/transport/http"
 	paymentwiring "github.com/dujiao-next/internal/bootstrap/payment"
 	publicconfigwiring "github.com/dujiao-next/internal/bootstrap/publicconfig"
 	resellerbootstrap "github.com/dujiao-next/internal/bootstrap/reseller"
@@ -227,6 +228,12 @@ func SetupRouter(cfg *config.Config, c *container.Container) *gin.Engine {
 	sitemaptransport.RegisterRoutes(r, sitemaptransport.NewHandler(c.SitemapService, sitemapbrand.New(c.SettingService)))
 
 	apiV1 := r.Group("/api/v1")
+	orderhttp.RegisterFolio(apiV1, c.OrderStore, c.PaymentStore, func() string {
+		if c.SettingService != nil {
+			return c.SettingService.ResolveFolioConfig(cfg.Folio).Secret
+		}
+		return cfg.Folio.Secret
+	})
 	registerStorefrontRoutes(apiV1, cfg, c, publicContentHandler, publicCatalogHandler, publicCategoryHandler, userResellerHandler, userResellerProductSettingHandler, userResellerFinanceHandler, userResellerOrderHandler, userApiCredentialHandler, userAuditLogHandler, userGiftCardHandler, publicMemberLevelHandler, userProfileHandler, userEmailHandler, userPasswordHandler, userVerifyHandler, userTelegramOIDCHandler, userTelegramHandler, userGoogleHandler, userLoginHandler, user2FAHandler, publicConfigHandler, userCartHandler, userOrderHandler, guestOrderHandler, orderPreviewHandler, orderCreateHandler, paymentLatestHandler, paymentWriteHandler, userWalletHandler, redisClient, loginRule, guestReadRule, guestWriteRule)
 	registerUpstreamRoutes(apiV1, c, upstreamHandler, redisClient, upstreamAPIRule)
 	registerChannelRoutes(apiV1, c, channelHandler, channelMemberLevelHandler, channelGiftCardHandler, channelAffiliateHandler, channelTelegramBotHandler, channelWalletHandler)

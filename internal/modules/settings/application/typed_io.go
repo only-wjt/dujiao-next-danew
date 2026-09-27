@@ -387,3 +387,44 @@ func (s *Service) UpdateTelegramBotRuntimeStatus(status settingsmessaging.Telegr
 	_, err := s.Update(constants.SettingKeyTelegramBotRuntimeStatus, settingsmessaging.EncodeTelegramBotRuntimeStatus(status))
 	return err
 }
+
+// GetFolioSetting 获取 Folio 对接设置（优先 settings，空时回退 config.yml）。
+func (s *Service) GetFolioSetting(defaultCfg config.FolioConfig) (settingsintegration.FolioSetting, error) {
+	fallback := settingsintegration.DefaultFolioSetting(defaultCfg)
+	if s == nil {
+		return fallback, nil
+	}
+	value, err := s.GetByKey(constants.SettingKeyFolioConfig)
+	if err != nil {
+		return fallback, err
+	}
+	if value == nil {
+		return fallback, nil
+	}
+	return settingsintegration.NormalizeFolioSetting(settingsintegration.DecodeFolioSetting(value, fallback)), nil
+}
+
+// PatchFolioSetting 基于补丁更新 Folio 对接设置。
+func (s *Service) PatchFolioSetting(defaultCfg config.FolioConfig, patch settingsintegration.FolioSettingPatch) (settingsintegration.FolioSetting, error) {
+	current, err := s.GetFolioSetting(defaultCfg)
+	if err != nil {
+		return settingsintegration.FolioSetting{}, err
+	}
+	next, err := settingsintegration.ApplyFolioSettingPatch(current, patch)
+	if err != nil {
+		return settingsintegration.FolioSetting{}, err
+	}
+	if _, err := s.Update(constants.SettingKeyFolioConfig, map[string]interface{}(settingsintegration.EncodeFolioSetting(next))); err != nil {
+		return settingsintegration.FolioSetting{}, err
+	}
+	return next, nil
+}
+
+// ResolveFolioConfig 解析运行时 Folio 配置（settings 优先，失败回退 defaultCfg）。
+func (s *Service) ResolveFolioConfig(defaultCfg config.FolioConfig) config.FolioConfig {
+	setting, err := s.GetFolioSetting(defaultCfg)
+	if err != nil {
+		return defaultCfg
+	}
+	return settingsintegration.FolioSettingToConfig(setting)
+}

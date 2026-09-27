@@ -66,6 +66,8 @@ type PaymentService struct {
 	memberLevelSvc          MemberLevelProgressor
 	paymentProviderRegistry paymentcontract.GatewayRegistry
 	resellerAccounting      resellerAccountingTransactions
+	// FolioPush 在订单支付成功且申请了开票时调用。未配置时为空。
+	FolioPush func(orderID uint)
 }
 
 type MemberLevelProgressor interface {

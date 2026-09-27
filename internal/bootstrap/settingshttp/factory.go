@@ -29,3 +29,9 @@ func NewGoogleAuthHandler(c *container.Container, cfg *config.Config) *settingst
 		settings: c.SettingService, cfg: cfg, googleAuth: c.GoogleAuthService,
 	})
 }
+
+func NewFolioHandler(c *container.Container, cfg *config.Config) *settingstransport.FolioHandler {
+	return settingstransport.NewFolioHandler(settingsFolioAdapter{
+		settings: c.SettingService, cfg: cfg,
+	})
+}

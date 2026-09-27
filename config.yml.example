@@ -163,6 +163,13 @@ order:
   payment_expire_minutes: 15
   max_refund_days: 30
 
+# Folio 开票对接（base_url 与 secret 均非空才推单；留空关闭）
+# 也可在后台「系统设置 → Folio 开票对接」配置，数据库设置优先于本文件
+# Folio 控制台「业务对接」：业务系统地址填本商城，回调填 /api/v1/integrations/folio/callback，共用密钥两边一致
+folio:
+  base_url: ""  # 本机 Folio 地址，如 http://127.0.0.1:8090
+  secret: ""    # 与 Folio 控制台「共用密钥」相同
+
 reseller:
   enabled: false
   # 主站域名列表。启用分销模式后，请把正式主站域名写入这里。

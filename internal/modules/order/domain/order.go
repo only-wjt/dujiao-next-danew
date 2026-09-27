@@ -30,6 +30,13 @@ type Order struct {
 	InvoiceNote             string       `gorm:"type:varchar(500)" json:"invoice_note,omitempty"`                                  // 发票备注
 	InvoiceEmail            string       `gorm:"type:varchar(200)" json:"invoice_email,omitempty"`                                 // 收票邮箱
 	InvoiceFeeAmount        money.Amount `gorm:"type:decimal(20,2);not null;default:0" json:"invoice_fee_amount"`                  // 开票加价金额
+	InvoiceBuyerType        string       `gorm:"type:varchar(10);not null;default:''" json:"invoice_buyer_type,omitempty"`         // 购方类型 personal/company
+	InvoiceStatus           string       `gorm:"type:varchar(24);not null;default:''" json:"invoice_status,omitempty"`             // Folio 回写的开票状态
+	InvoiceNo               string       `gorm:"type:varchar(32)" json:"invoice_no,omitempty"`                                     // 数电发票号码
+	InvoiceIssuedAt         *time.Time   `gorm:"index" json:"invoice_issued_at,omitempty"`                                         // 开具时间
+	InvoiceExternalID       string       `gorm:"type:varchar(64)" json:"invoice_external_id,omitempty"`                            // Folio 发票 id
+	InvoiceSyncVersion      int          `gorm:"not null;default:0" json:"invoice_sync_version"`                                   // 已接受的回调版本
+	InvoiceLastError        string       `gorm:"type:varchar(500)" json:"invoice_last_error,omitempty"`                            // 最近一次开票错误
 	WalletPaidAmount        money.Amount `gorm:"type:decimal(20,2);not null;default:0" json:"wallet_paid_amount"`                  // 钱包支付金额
 	OnlinePaidAmount        money.Amount `gorm:"type:decimal(20,2);not null;default:0" json:"online_paid_amount"`                  // 在线支付金额
 	RefundedAmount          money.Amount `gorm:"type:decimal(20,2);not null;default:0" json:"refunded_amount"`                     // 已退款金额（退回钱包）

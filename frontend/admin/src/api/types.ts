@@ -175,6 +175,10 @@ export interface AdminOrder {
   invoice_note?: string
   invoice_email?: string
   invoice_fee_amount?: number | string
+  invoice_status?: string
+  invoice_no?: string
+  invoice_issued_at?: string
+  invoice_last_error?: string
   coupon_id?: number
   coupon_code?: string
   promotion_id?: number

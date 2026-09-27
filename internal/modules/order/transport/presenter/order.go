@@ -82,6 +82,9 @@ type OrderDetail struct {
 	InvoiceNote              string            `json:"invoice_note,omitempty"`
 	InvoiceEmail             string            `json:"invoice_email,omitempty"`
 	InvoiceFeeAmount         money.Amount      `json:"invoice_fee_amount"`
+	InvoiceStatus            string            `json:"invoice_status,omitempty"`
+	InvoiceNo                string            `json:"invoice_no,omitempty"`
+	InvoiceIssuedAt          *time.Time        `json:"invoice_issued_at,omitempty"`
 	PaymentFeeAmount         money.Amount      `json:"payment_fee_amount"`
 	ActualPaidAmount         money.Amount      `json:"actual_paid_amount"`
 	WalletPaidAmount         money.Amount      `json:"wallet_paid_amount"`
@@ -128,6 +131,9 @@ func NewOrderDetail(o *orderdomain.Order) OrderDetail {
 		InvoiceNote:             o.InvoiceNote,
 		InvoiceEmail:            o.InvoiceEmail,
 		InvoiceFeeAmount:        o.InvoiceFeeAmount,
+		InvoiceStatus:           o.InvoiceStatus,
+		InvoiceNo:               o.InvoiceNo,
+		InvoiceIssuedAt:         o.InvoiceIssuedAt,
 		WalletPaidAmount:        o.WalletPaidAmount,
 		OnlinePaidAmount:        o.OnlinePaidAmount,
 		RefundedAmount:          o.RefundedAmount,

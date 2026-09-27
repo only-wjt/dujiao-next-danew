@@ -180,6 +180,45 @@ func guestCredentialBackfillCandidateSQL(dialect string) (string, []interface{})
 	}
 }
 
+// GetByOrderNo 按订单号取订单（含子订单）。不存在时返回 nil, nil。
+func (r *Store) GetByOrderNo(orderNo string) (*orderdomain.Order, error) {
+	var order orderdomain.Order
+	if err := r.withChildren(r.db).Where("order_no = ?", orderNo).First(&order).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &order, nil
+}
+
+// ListInvoiceRequested 列出申请了开票的父订单，可按支付时间过滤。
+func (r *Store) ListInvoiceRequested(paidFrom, paidTo *time.Time, page, pageSize int) ([]orderdomain.Order, int64, error) {
+	if page < 1 {
+		page = 1
+	}
+	if pageSize <= 0 || pageSize > 100 {
+		pageSize = 20
+	}
+	query := r.db.Model(&orderdomain.Order{}).
+		Where("orders.deleted_at IS NULL AND parent_id IS NULL AND invoice_requested = ?", true)
+	if paidFrom != nil {
+		query = query.Where("paid_at >= ?", *paidFrom)
+	}
+	if paidTo != nil {
+		query = query.Where("paid_at < ?", *paidTo)
+	}
+	var total int64
+	if err := query.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+	var orders []orderdomain.Order
+	if err := query.Order("paid_at desc, id desc").Offset((page - 1) * pageSize).Limit(pageSize).Find(&orders).Error; err != nil {
+		return nil, 0, err
+	}
+	return orders, total, nil
+}
+
 // GetByID 根据 ID 获取订单
 func (r *Store) GetByID(id uint) (*orderdomain.Order, error) {
 	var order orderdomain.Order

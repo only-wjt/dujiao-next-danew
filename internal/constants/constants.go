@@ -401,6 +401,8 @@ const (
 	TaskDownstreamCallback          = "downstream:callback"
 	TaskBotNotify                   = "bot:notify"
 	TaskTelegramBroadcast           = "telegram:broadcast"
+	TaskFolioInvoice                = "folio:invoice"
+	TaskFolioRefund                 = "folio:refund"
 )
 
 // Telegram Bot 群发常量
@@ -510,6 +512,7 @@ const (
 	SettingFieldUpstreamSyncConcurrency = "sync_conn_concurrency"
 
 	SettingKeyCallbackRoutesConfig = "callback_routes_config"
+	SettingKeyFolioConfig          = "folio_config"
 
 	SettingKeyHomeAnnouncement   = "home_announcement"
 	SettingFieldPaymentCallback  = "payment_callback"

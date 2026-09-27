@@ -509,6 +509,12 @@ const navGroups = computed<NavGroup[]>(() => {
           permission: 'GET:/admin/settings',
         },
         {
+          label: t('admin.navItems.folioSettings'),
+          to: '/settings/folio',
+          icon: ReceiptText,
+          permission: 'GET:/admin/settings/folio',
+        },
+        {
           label: t('admin.navItems.notificationCenter'),
           to: '/settings/notifications',
           icon: Bell,

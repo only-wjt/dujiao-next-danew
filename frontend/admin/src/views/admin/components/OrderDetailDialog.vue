@@ -205,6 +205,12 @@ const orderInvoiceAmount = (order: AdminOrder | null) => {
   return Number((total + surcharge).toFixed(2))
 }
 
+const orderInvoiceIssued = (order: AdminOrder | null) => {
+  if (!order) return false
+  if (order.invoice_status === 'issued') return true
+  return Boolean(order.invoice_no && String(order.invoice_no).trim())
+}
+
 const orderProfit = (order: AdminOrder | null) => {
   if (!order?.items?.length) return 0
   const itemTotal = order.items.reduce((sum, item) => sum + itemProfit(order, item), 0)
@@ -820,6 +826,33 @@ watch(
             <div class="grid grid-cols-1 gap-4 text-sm md:grid-cols-2 [&>*]:min-w-0">
               <Card class="min-w-0 rounded-lg border-border bg-background shadow-none">
                 <CardContent class="p-3">
+                  <div class="text-xs text-muted-foreground">{{ t('orderDetail.invoiceIssueStatus') }}</div>
+                  <div class="mt-1 text-foreground">
+                    <span
+                      class="inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium"
+                      :class="orderInvoiceIssued(selectedOrder)
+                        ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400'
+                        : 'bg-amber-50 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300'"
+                    >
+                      {{ orderInvoiceIssued(selectedOrder) ? t('orderDetail.invoiceIssued') : t('orderDetail.invoiceNotIssued') }}
+                    </span>
+                  </div>
+                </CardContent>
+              </Card>
+              <Card v-if="selectedOrder.invoice_no" class="min-w-0 rounded-lg border-border bg-background shadow-none">
+                <CardContent class="p-3">
+                  <div class="text-xs text-muted-foreground">{{ t('orderDetail.invoiceNo') }}</div>
+                  <div class="mt-1 break-all font-mono text-foreground">{{ selectedOrder.invoice_no }}</div>
+                </CardContent>
+              </Card>
+              <Card v-if="selectedOrder.invoice_issued_at" class="min-w-0 rounded-lg border-border bg-background shadow-none">
+                <CardContent class="p-3">
+                  <div class="text-xs text-muted-foreground">{{ t('orderDetail.invoiceIssuedAt') }}</div>
+                  <div class="mt-1 text-foreground">{{ formatDate(selectedOrder.invoice_issued_at) }}</div>
+                </CardContent>
+              </Card>
+              <Card class="min-w-0 rounded-lg border-border bg-background shadow-none">
+                <CardContent class="p-3">
                   <div class="text-xs text-muted-foreground">{{ t('orderDetail.invoiceName') }}</div>
                   <div class="mt-1 break-all text-foreground">{{ selectedOrder.invoice_title || '-' }}</div>
                 </CardContent>
@@ -846,6 +879,12 @@ watch(
                 <CardContent class="p-3">
                   <div class="text-xs text-muted-foreground">{{ t('orderDetail.invoiceNote') }}</div>
                   <div class="mt-1 whitespace-pre-wrap break-words text-foreground">{{ selectedOrder.invoice_note || '-' }}</div>
+                </CardContent>
+              </Card>
+              <Card v-if="selectedOrder.invoice_last_error" class="min-w-0 rounded-lg border-destructive/30 bg-background shadow-none md:col-span-2">
+                <CardContent class="p-3">
+                  <div class="text-xs text-muted-foreground">{{ t('orderDetail.invoiceLastError') }}</div>
+                  <div class="mt-1 whitespace-pre-wrap break-words text-destructive">{{ selectedOrder.invoice_last_error }}</div>
                 </CardContent>
               </Card>
             </div>
