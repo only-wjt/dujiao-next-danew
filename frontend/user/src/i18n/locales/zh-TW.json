@@ -1718,6 +1718,7 @@
     "invoiceIssued": "已開具",
     "invoiceNotIssued": "未開具",
     "invoiceNo": "發票號碼",
+    "invoiceDownload": "下載發票",
     "invoiceName": "發票抬頭",
     "invoiceEmail": "收票信箱",
     "paymentFeeLabel": "支付手續費",

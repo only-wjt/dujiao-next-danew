@@ -24,6 +24,8 @@ import {
 import { formatDate, formatMoney, getLocalizedText, hasPositiveAmount } from '@/utils/format'
 import { resolveSkuCodeFromSnapshot, resolveSkuSpecFromSnapshot } from '@/utils/sku'
 import { adminUrl } from '@/utils/adminBase'
+import { copyText } from '@/utils/clipboard'
+import { notifyError, notifySuccess } from '@/utils/notify'
 
 const props = defineProps<{
   modelValue: boolean
@@ -203,6 +205,16 @@ const orderInvoiceAmount = (order: AdminOrder | null) => {
     return sum + Math.max(parseMoneyValue(payment.fee_amount), 0)
   }, 0)
   return Number((total + surcharge).toFixed(2))
+}
+
+const copyInvoiceLink = async (link?: string) => {
+  if (!link) return
+  try {
+    await copyText(link)
+    notifySuccess(t('orderDetail.invoiceLinkCopied'))
+  } catch {
+    notifyError(t('orderDetail.invoiceCopyFailed'))
+  }
 }
 
 const orderInvoiceIssued = (order: AdminOrder | null) => {
@@ -849,6 +861,17 @@ watch(
                 <CardContent class="p-3">
                   <div class="text-xs text-muted-foreground">{{ t('orderDetail.invoiceIssuedAt') }}</div>
                   <div class="mt-1 text-foreground">{{ formatDate(selectedOrder.invoice_issued_at) }}</div>
+                </CardContent>
+              </Card>
+              <Card v-if="selectedOrder.invoice_pdf_url" class="min-w-0 rounded-lg border-border bg-background shadow-none">
+                <CardContent class="p-3">
+                  <div class="text-xs text-muted-foreground">{{ t('orderDetail.invoicePdf') }}</div>
+                  <div class="mt-1 flex flex-wrap gap-2">
+                    <Button as-child size="sm" variant="outline">
+                      <a :href="selectedOrder.invoice_pdf_url" target="_blank" rel="noopener noreferrer">{{ t('orderDetail.invoiceDownload') }}</a>
+                    </Button>
+                    <Button size="sm" variant="outline" @click="copyInvoiceLink(selectedOrder.invoice_pdf_url)">{{ t('orderDetail.invoiceCopyLink') }}</Button>
+                  </div>
                 </CardContent>
               </Card>
               <Card class="min-w-0 rounded-lg border-border bg-background shadow-none">

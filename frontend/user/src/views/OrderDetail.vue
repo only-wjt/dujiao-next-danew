@@ -313,6 +313,39 @@
           </div>
         </div>
 
+        <div v-if="order.invoice_requested" class="rounded-2xl border bg-card shadow-sm p-6">
+          <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <h2 class="text-lg font-bold">{{ t('orderDetail.invoiceTitle') }}</h2>
+            <a
+              v-if="order.invoice_pdf_url"
+              :href="order.invoice_pdf_url"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="inline-flex items-center rounded-lg border px-4 py-2 text-sm font-medium hover:bg-muted"
+            >{{ t('orderDetail.invoiceDownload') }}</a>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+            <div class="border rounded-xl p-4">
+              <div class="text-xs text-muted-foreground">{{ t('orderDetail.invoiceIssueStatus') }}</div>
+              <div class="text-foreground mt-1">
+                {{ order.invoice_status === 'issued' || order.invoice_no ? t('orderDetail.invoiceIssued') : t('orderDetail.invoiceNotIssued') }}
+              </div>
+            </div>
+            <div v-if="order.invoice_no" class="border rounded-xl p-4">
+              <div class="text-xs text-muted-foreground">{{ t('orderDetail.invoiceNo') }}</div>
+              <div class="text-foreground font-mono mt-1 break-all">{{ order.invoice_no }}</div>
+            </div>
+            <div v-if="order.invoice_title" class="border rounded-xl p-4">
+              <div class="text-xs text-muted-foreground">{{ t('orderDetail.invoiceName') }}</div>
+              <div class="text-foreground mt-1 break-all">{{ order.invoice_title }}</div>
+            </div>
+            <div v-if="order.invoice_email" class="border rounded-xl p-4">
+              <div class="text-xs text-muted-foreground">{{ t('orderDetail.invoiceEmail') }}</div>
+              <div class="text-foreground mt-1 break-all">{{ order.invoice_email }}</div>
+            </div>
+          </div>
+        </div>
+
         <div v-if="showRefundRecordsCard" class="rounded-2xl border bg-card shadow-sm p-6">
           <h2 class="text-lg font-bold mb-4">{{ t('orderDetail.refundRecordsTitle') }}</h2>
           <div v-if="refundRecords.length > 0" class="overflow-x-auto rounded-xl border">

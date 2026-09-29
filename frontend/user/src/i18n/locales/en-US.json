@@ -1718,6 +1718,7 @@
     "invoiceIssued": "Issued",
     "invoiceNotIssued": "Not issued",
     "invoiceNo": "Invoice number",
+    "invoiceDownload": "Download invoice",
     "invoiceName": "Invoice title",
     "invoiceEmail": "Invoice email",
     "paymentFeeLabel": "Payment fee",

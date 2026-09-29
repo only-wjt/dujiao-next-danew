@@ -115,7 +115,16 @@
 
     <!-- 开票状态 -->
     <section v-if="order.invoice_requested" class="rounded-xl border bg-card p-[22px]">
-      <h2 class="mb-4 text-lg font-bold">{{ t('orderDetail.invoiceTitle') }}</h2>
+      <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <h2 class="text-lg font-bold">{{ t('orderDetail.invoiceTitle') }}</h2>
+        <a
+          v-if="order.invoice_pdf_url"
+          :href="order.invoice_pdf_url"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="inline-flex items-center rounded-md border bg-secondary px-3.5 py-2 text-sm font-bold hover:opacity-80"
+        >{{ t('orderDetail.invoiceDownload') }}</a>
+      </div>
       <div class="grid gap-3 grid-cols-[repeat(auto-fill,minmax(180px,1fr))]">
         <div class="rounded-md border bg-secondary px-3.5 py-3">
           <div class="text-xs text-muted-foreground">{{ t('orderDetail.invoiceIssueStatus') }}</div>

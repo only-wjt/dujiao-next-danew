@@ -178,6 +178,7 @@ export interface AdminOrder {
   invoice_status?: string
   invoice_no?: string
   invoice_issued_at?: string
+  invoice_pdf_url?: string
   invoice_last_error?: string
   coupon_id?: number
   coupon_code?: string

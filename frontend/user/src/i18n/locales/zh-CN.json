@@ -1670,6 +1670,7 @@
     "invoiceIssued": "已开具",
     "invoiceNotIssued": "未开具",
     "invoiceNo": "发票号码",
+    "invoiceDownload": "下载发票",
     "invoiceName": "发票抬头",
     "invoiceEmail": "收票邮箱",
     "paymentFeeLabel": "支付手续费",

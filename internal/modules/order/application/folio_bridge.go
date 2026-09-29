@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -27,6 +28,26 @@ func SignFolioRequest(method, path, timestamp, nonce string, body []byte, secret
 	mac := hmac.New(sha256.New, []byte(secret))
 	_, _ = mac.Write([]byte(content))
 	return hex.EncodeToString(mac.Sum(nil))
+}
+
+const maxInvoicePDFURLLen = 500
+
+// NormalizeInvoicePDFURL 只接受税局域名下的 https 链接，其它一律返回空串。
+// 即使对接密钥泄露，也无法借回调往用户订单里塞第三方链接。
+func NormalizeInvoicePDFURL(raw string) string {
+	raw = strings.TrimSpace(raw)
+	if raw == "" || len(raw) > maxInvoicePDFURLLen {
+		return ""
+	}
+	parsed, err := url.Parse(raw)
+	if err != nil || parsed.Scheme != "https" || parsed.User != nil {
+		return ""
+	}
+	host := strings.ToLower(parsed.Hostname())
+	if host != "chinatax.gov.cn" && !strings.HasSuffix(host, ".chinatax.gov.cn") {
+		return ""
+	}
+	return parsed.String()
 }
 
 // InvoiceableView 是给 Folio 的订单金额查询结果。

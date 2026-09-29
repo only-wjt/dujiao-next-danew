@@ -238,3 +238,20 @@ func TestNewOrderDetailNilSafety(t *testing.T) {
 		t.Error("expected nil items")
 	}
 }
+
+func TestNewOrderDetailInvoicePDFURLOnlyWhenIssued(t *testing.T) {
+	const link = "https://dppt.shanghai.chinatax.gov.cn:8443/x"
+	issued := NewOrderDetail(&orderdomain.Order{OrderNo: "A", InvoiceStatus: "issued", InvoicePDFURL: link})
+	if issued.InvoicePDFURL != link {
+		t.Fatalf("issued order should expose link, got %q", issued.InvoicePDFURL)
+	}
+	pending := NewOrderDetail(&orderdomain.Order{OrderNo: "B", InvoiceStatus: "pending_review", InvoicePDFURL: link})
+	if pending.InvoicePDFURL != "" {
+		t.Fatalf("non-issued order must not expose link, got %q", pending.InvoicePDFURL)
+	}
+	summary := NewOrderSummary(&orderdomain.Order{OrderNo: "C", InvoiceStatus: "issued", InvoicePDFURL: link})
+	raw, _ := json.Marshal(summary)
+	if strings.Contains(string(raw), "invoice_pdf_url") {
+		t.Fatalf("order list must not expose link: %s", raw)
+	}
+}

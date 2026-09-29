@@ -39,6 +39,30 @@ func TestResolveFolioRefundRootUsesParent(t *testing.T) {
 	}
 }
 
+func TestNormalizeInvoicePDFURL(t *testing.T) {
+	const real = "https://dppt.shanghai.chinatax.gov.cn:8443/kpfw/fpjfzz/v1/exportDzfpwjEwm?Wjgs=PDF&Jym=A204&Fphm=26312000006117187666&Kprq=20260926104927&Czsj=1790390968754"
+	cases := []struct {
+		name string
+		in   string
+		want string
+	}{
+		{"tax bureau link", real, real},
+		{"trims spaces", "  " + real + " ", real},
+		{"empty clears", "", ""},
+		{"http rejected", "http://dppt.shanghai.chinatax.gov.cn/x", ""},
+		{"other host rejected", "https://evil.example.com/x.pdf", ""},
+		{"lookalike suffix rejected", "https://fakechinatax.gov.cn/x", ""},
+		{"lookalike prefix rejected", "https://chinatax.gov.cn.evil.com/x", ""},
+		{"userinfo rejected", "https://user@dppt.shanghai.chinatax.gov.cn/x", ""},
+		{"javascript rejected", "javascript:alert(1)", ""},
+	}
+	for _, tc := range cases {
+		if got := NormalizeInvoicePDFURL(tc.in); got != tc.want {
+			t.Errorf("%s: got %q want %q", tc.name, got, tc.want)
+		}
+	}
+}
+
 type fakeFolioLookup struct {
 	byID map[uint]*orderdomain.Order
 }

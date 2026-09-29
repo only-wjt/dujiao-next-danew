@@ -99,15 +99,16 @@ func (h *FolioHandler) ListOrders(c *gin.Context) {
 }
 
 type folioCallback struct {
-	EventID      string `json:"event_id"`
-	Event        string `json:"event"`
-	Version      int    `json:"version"`
-	OrderNo      string `json:"order_no"`
-	InvoiceID    string `json:"invoice_id"`
-	Status       string `json:"status"`
-	Fphm         string `json:"fphm"`
-	Amount       string `json:"amount"`
-	ErrorMessage string `json:"error_message"`
+	EventID      string  `json:"event_id"`
+	Event        string  `json:"event"`
+	Version      int     `json:"version"`
+	OrderNo      string  `json:"order_no"`
+	InvoiceID    string  `json:"invoice_id"`
+	Status       string  `json:"status"`
+	Fphm         string  `json:"fphm"`
+	Amount       string  `json:"amount"`
+	PDFURL       *string `json:"pdf_url"`
+	ErrorMessage string  `json:"error_message"`
 }
 
 func (h *FolioHandler) Callback(c *gin.Context) {
@@ -146,7 +147,10 @@ func (h *FolioHandler) Callback(c *gin.Context) {
 		"invoice_sync_version": payload.Version,
 		"updated_at":           time.Now(),
 	}
-	if payload.Status == "issued" || payload.Event == "invoice.issued" {
+	if payload.PDFURL != nil {
+		updates["invoice_pdf_url"] = orderapp.NormalizeInvoicePDFURL(*payload.PDFURL)
+	}
+	if order.InvoiceIssuedAt == nil && (payload.Status == "issued" || payload.Event == "invoice.issued") {
 		now := time.Now()
 		updates["invoice_issued_at"] = &now
 	}

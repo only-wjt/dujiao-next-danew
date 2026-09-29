@@ -85,6 +85,7 @@ type OrderDetail struct {
 	InvoiceStatus            string            `json:"invoice_status,omitempty"`
 	InvoiceNo                string            `json:"invoice_no,omitempty"`
 	InvoiceIssuedAt          *time.Time        `json:"invoice_issued_at,omitempty"`
+	InvoicePDFURL            string            `json:"invoice_pdf_url,omitempty"`
 	PaymentFeeAmount         money.Amount      `json:"payment_fee_amount"`
 	ActualPaidAmount         money.Amount      `json:"actual_paid_amount"`
 	WalletPaidAmount         money.Amount      `json:"wallet_paid_amount"`
@@ -141,6 +142,9 @@ func NewOrderDetail(o *orderdomain.Order) OrderDetail {
 		PaidAt:                  o.PaidAt,
 		CanceledAt:              o.CanceledAt,
 		CreatedAt:               o.CreatedAt,
+	}
+	if o.InvoiceStatus == "issued" {
+		d.InvoicePDFURL = o.InvoicePDFURL
 	}
 	paid := o.PaidAt != nil
 	for _, item := range o.Items {
