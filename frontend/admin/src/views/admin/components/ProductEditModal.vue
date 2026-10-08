@@ -146,6 +146,7 @@ const form = reactive({
   description: { 'zh-CN': '', 'zh-TW': '', 'en-US': '' } as LocalizedText,
   content: { 'zh-CN': '', 'zh-TW': '', 'en-US': '' } as LocalizedText,
   instructions: { 'zh-CN': '', 'zh-TW': '', 'en-US': '' } as LocalizedText,
+  redeem_url: '',
   price_amount: 0,
   cost_price_amount: 0,
   images: [] as string[],
@@ -488,6 +489,7 @@ const resetForm = () => {
     description: { 'zh-CN': '', 'zh-TW': '', 'en-US': '' },
     content: { 'zh-CN': '', 'zh-TW': '', 'en-US': '' },
     instructions: { 'zh-CN': '', 'zh-TW': '', 'en-US': '' },
+    redeem_url: '',
     price_amount: 0,
     cost_price_amount: 0,
     images: [],
@@ -536,6 +538,7 @@ const populateForm = (product: AdminProduct) => {
     description: product.description || { 'zh-CN': '', 'zh-TW': '', 'en-US': '' },
     content: product.content || { 'zh-CN': '', 'zh-TW': '', 'en-US': '' },
     instructions: (product as AdminProduct & { instructions?: LocalizedText }).instructions || { 'zh-CN': '', 'zh-TW': '', 'en-US': '' },
+    redeem_url: product.redeem_url || '',
     price_amount: Number(product.price_amount || 0),
     cost_price_amount: Number(product.cost_price_amount || 0),
     images: imagesList,
@@ -609,6 +612,7 @@ const handleSubmit = async () => {
       description: form.description,
       content: form.content,
       instructions: form.instructions,
+      redeem_url: String(form.redeem_url || '').trim(),
       price_amount: effectivePrice,
       cost_price_amount: effectiveCostPrice,
       images: form.images,
@@ -1072,6 +1076,12 @@ watch(
             <label class="block text-xs font-medium text-muted-foreground mb-1.5">{{ t('admin.products.form.instructions', { lang: getCurrentLangName() }) }}</label>
             <RichEditor :model-value="form.instructions[currentLang] || ''" @update:model-value="(v: string) => form.instructions[currentLang] = v" :placeholder="t('admin.products.form.instructionsPlaceholder')" />
             <p class="mt-1 text-xs text-muted-foreground">{{ t('admin.products.form.instructionsTip') }}</p>
+          </div>
+
+          <div class="col-span-1 md:col-span-2">
+            <label class="block text-xs font-medium text-muted-foreground mb-1.5">{{ t('admin.products.form.redeemUrl') }}</label>
+            <Input v-model="form.redeem_url" :placeholder="t('admin.products.form.redeemUrlPlaceholder')" />
+            <p class="mt-1 text-xs text-muted-foreground">{{ t('admin.products.form.redeemUrlTip') }}</p>
           </div>
 
           <div class="col-span-1 md:col-span-2">

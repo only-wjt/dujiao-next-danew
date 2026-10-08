@@ -50,18 +50,31 @@
           class="flex items-center justify-between gap-3 rounded-md border bg-background px-3 py-2.5"
         >
           <span class="min-w-0 select-all whitespace-pre-wrap break-all font-mono text-[15px] font-semibold leading-relaxed text-foreground">{{ line }}</span>
-          <Button
-            v-if="delivered"
-            type="button"
-            variant="ghost"
-            size="sm"
-            class="h-8 flex-none rounded-full px-2.5 text-primary"
-            :aria-label="t('orderDetail.fulfillmentCopy')"
-            @click="handleCopyLine(line, index)"
-          >
-            <component :is="copiedLineIndex === index ? Check : Copy" class="h-4 w-4" />
-            <span class="max-[480px]:hidden">{{ copiedLineIndex === index ? t('orderDetail.fulfillmentCopied') : t('orderDetail.fulfillmentCopyLine') }}</span>
-          </Button>
+          <div v-if="delivered" class="flex flex-none items-center gap-1">
+            <Button
+              v-if="redeemHref(line)"
+              as-child
+              type="button"
+              size="sm"
+              class="h-8 rounded-full px-2.5"
+            >
+              <a :href="redeemHref(line)" target="_blank" rel="noopener noreferrer">
+                <ExternalLink class="h-4 w-4" />
+                {{ t('orderDetail.redeem') }}
+              </a>
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              class="h-8 rounded-full px-2.5 text-primary"
+              :aria-label="t('orderDetail.fulfillmentCopy')"
+              @click="handleCopyLine(line, index)"
+            >
+              <component :is="copiedLineIndex === index ? Check : Copy" class="h-4 w-4" />
+              <span class="max-[480px]:hidden">{{ copiedLineIndex === index ? t('orderDetail.fulfillmentCopied') : t('orderDetail.fulfillmentCopyLine') }}</span>
+            </Button>
+          </div>
         </div>
       </div>
       <div v-else class="mt-3 text-[13px] text-muted-foreground">{{ fulfillmentStatusLabelText(fulfillment.status) }}</div>
@@ -84,7 +97,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { Copy, Check, Download, Info, KeyRound } from 'lucide-vue-next'
+import { Copy, Check, Download, ExternalLink, Info, KeyRound } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import { useOrderDisplayHelpers } from '../../../composables/useOrderDisplayHelpers'
 
@@ -118,4 +131,20 @@ const displayLines = computed(() => {
     .map((line) => line.trim())
     .filter(Boolean)
 })
+
+const redeemTemplate = computed(() => {
+  const items = Array.isArray(props.items) ? props.items : []
+  for (const item of items) {
+    const url = String(item?.redeem_url || '').trim()
+    if (url.includes('{code}')) return url
+  }
+  return ''
+})
+
+function redeemHref(line: string) {
+  const template = redeemTemplate.value
+  const code = String(line || '').trim()
+  if (!template || !code) return ''
+  return template.replace('{code}', encodeURIComponent(code))
+}
 </script>

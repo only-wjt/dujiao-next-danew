@@ -49,6 +49,11 @@ func (s *WriteService) Update(id string, input CreateProductInput) (*productdoma
 	product.DescriptionJSON = jsonmap.JSON(input.DescriptionJSON)
 	product.ContentJSON = jsonmap.JSON(input.ContentJSON)
 	product.InstructionsJSON = jsonmap.JSON(input.InstructionsJSON)
+	redeemURL, err := productdomain.NormalizeRedeemURL(input.RedeemURL)
+	if err != nil {
+		return nil, productcontract.ErrRedeemURLInvalid
+	}
+	product.RedeemURL = redeemURL
 	product.ManualFormSchemaJSON = jsonmap.JSON{}
 	product.PriceAmount = money.FromDecimal(priceAmount)
 	product.SortOrder = input.SortOrder

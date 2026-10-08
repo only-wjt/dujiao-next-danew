@@ -212,6 +212,7 @@ type CreateProductRequest struct {
 	DescriptionJSON     map[string]interface{}   `json:"description"`
 	ContentJSON         map[string]interface{}   `json:"content"`
 	InstructionsJSON    map[string]interface{}   `json:"instructions"`
+	RedeemURL           string                   `json:"redeem_url"`
 	ManualFormSchema    map[string]interface{}   `json:"manual_form_schema"`
 	PriceAmount         float64                  `json:"price_amount" binding:"required"`
 	CostPriceAmount     float64                  `json:"cost_price_amount"`
@@ -285,6 +286,7 @@ func (h *AdminProductHandler) CreateProduct(c *gin.Context) {
 		DescriptionJSON:      req.DescriptionJSON,
 		ContentJSON:          req.ContentJSON,
 		InstructionsJSON:     req.InstructionsJSON,
+		RedeemURL:            req.RedeemURL,
 		ManualFormSchemaJSON: req.ManualFormSchema,
 		PriceAmount:          decimal.NewFromFloat(req.PriceAmount),
 		CostPriceAmount:      decimal.NewFromFloat(req.CostPriceAmount),
@@ -304,6 +306,10 @@ func (h *AdminProductHandler) CreateProduct(c *gin.Context) {
 		SortOrder:            req.SortOrder,
 	})
 	if err != nil {
+		if errors.Is(err, productcontract.ErrRedeemURLInvalid) {
+			ginutil.RespondError(c, response.CodeBadRequest, "error.redeem_url_invalid", nil)
+			return
+		}
 		if errors.Is(err, productcontract.ErrSlugExists) {
 			ginutil.RespondError(c, response.CodeBadRequest, "error.slug_exists", nil)
 			return
@@ -377,6 +383,7 @@ func (h *AdminProductHandler) UpdateProduct(c *gin.Context) {
 		DescriptionJSON:      req.DescriptionJSON,
 		ContentJSON:          req.ContentJSON,
 		InstructionsJSON:     req.InstructionsJSON,
+		RedeemURL:            req.RedeemURL,
 		ManualFormSchemaJSON: req.ManualFormSchema,
 		PriceAmount:          decimal.NewFromFloat(req.PriceAmount),
 		CostPriceAmount:      decimal.NewFromFloat(req.CostPriceAmount),
@@ -396,6 +403,10 @@ func (h *AdminProductHandler) UpdateProduct(c *gin.Context) {
 		SortOrder:            req.SortOrder,
 	})
 	if err != nil {
+		if errors.Is(err, productcontract.ErrRedeemURLInvalid) {
+			ginutil.RespondError(c, response.CodeBadRequest, "error.redeem_url_invalid", nil)
+			return
+		}
 		if errors.Is(err, productcontract.ErrNotFound) {
 			ginutil.RespondError(c, response.CodeNotFound, "error.product_not_found", nil)
 			return

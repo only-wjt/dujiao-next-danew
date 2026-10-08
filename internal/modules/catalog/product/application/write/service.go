@@ -91,6 +91,7 @@ type CreateProductInput struct {
 	DescriptionJSON      map[string]interface{}
 	ContentJSON          map[string]interface{}
 	InstructionsJSON     map[string]interface{}
+	RedeemURL            string
 	ManualFormSchemaJSON map[string]interface{}
 	PriceAmount          decimal.Decimal
 	CostPriceAmount      decimal.Decimal

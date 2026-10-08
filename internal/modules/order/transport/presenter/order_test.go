@@ -125,6 +125,7 @@ func TestOrderDetailHidesInstructionsBeforePayment(t *testing.T) {
 					SKUID:            10,
 					TitleJSON:        jsonmap.JSON{"zh-CN": "商品A"},
 					InstructionsJSON: instructions,
+					RedeemURL:        "https://card.example.com/recharge?code={code}",
 					FulfillmentType:  "auto",
 				},
 			},
@@ -136,6 +137,9 @@ func TestOrderDetailHidesInstructionsBeforePayment(t *testing.T) {
 	if unpaid.Items[0].Instructions != nil {
 		t.Fatalf("unpaid order must not expose instructions, got %v", unpaid.Items[0].Instructions)
 	}
+	if unpaid.Items[0].RedeemURL != "" {
+		t.Fatalf("unpaid order must not expose redeem url, got %q", unpaid.Items[0].RedeemURL)
+	}
 
 	// 已付款：instructions 正常返回
 	now := time.Now()
@@ -146,11 +150,17 @@ func TestOrderDetailHidesInstructionsBeforePayment(t *testing.T) {
 	if got := paid.Items[0].Instructions["zh-CN"]; got != "账号使用方法：…" {
 		t.Fatalf("instructions mismatch: %v", got)
 	}
+	if paid.Items[0].RedeemURL == "" {
+		t.Fatal("paid order should expose redeem url")
+	}
 
 	// Summary 路径永远不应包含 instructions
 	summary := NewOrderSummary(mkOrder(&now))
 	if summary.Items[0].Instructions != nil {
 		t.Fatal("order summary must never expose instructions")
+	}
+	if summary.Items[0].RedeemURL != "" {
+		t.Fatal("order summary must never expose redeem url")
 	}
 }
 

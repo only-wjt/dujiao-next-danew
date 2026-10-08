@@ -95,6 +95,10 @@ func (s *WriteService) Create(input CreateProductInput) (*productdomain.Product,
 	if err != nil {
 		return nil, err
 	}
+	redeemURL, err := productdomain.NormalizeRedeemURL(input.RedeemURL)
+	if err != nil {
+		return nil, productcontract.ErrRedeemURLInvalid
+	}
 
 	product := productdomain.Product{
 		CategoryID:           input.CategoryID,
@@ -104,6 +108,7 @@ func (s *WriteService) Create(input CreateProductInput) (*productdomain.Product,
 		DescriptionJSON:      jsonmap.JSON(input.DescriptionJSON),
 		ContentJSON:          jsonmap.JSON(input.ContentJSON),
 		InstructionsJSON:     jsonmap.JSON(input.InstructionsJSON),
+		RedeemURL:            redeemURL,
 		ManualFormSchemaJSON: jsonmap.JSON{},
 		PriceAmount:          money.FromDecimal(priceAmount),
 		CostPriceAmount:      money.FromDecimal(costPriceAmount),

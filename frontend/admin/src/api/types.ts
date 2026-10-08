@@ -59,6 +59,7 @@ export interface AdminProduct {
   title: LocalizedText
   description: LocalizedText
   content: LocalizedText
+  redeem_url?: string
   price_amount: number
   cost_price_amount: number
   wholesale_prices?: AdminWholesalePrice[]

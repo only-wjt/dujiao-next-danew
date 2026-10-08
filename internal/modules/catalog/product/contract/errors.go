@@ -12,6 +12,7 @@ var (
 	ErrProductPurchaseLimitInvalid  = errors.New("product purchase limit invalid")
 	ErrProductStockDisplayInvalid   = errors.New("product stock display invalid")
 	ErrFulfillmentInvalid           = errors.New("fulfillment invalid")
+	ErrRedeemURLInvalid             = errors.New("redeem url invalid")
 	ErrManualStockInvalid           = errors.New("manual stock invalid")
 	ErrProductSKUInvalid            = errors.New("product sku invalid")
 	ErrProductSKUHasCardSecretStock = errors.New("product sku has card secret stock")

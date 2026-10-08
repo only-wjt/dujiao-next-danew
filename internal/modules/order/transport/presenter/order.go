@@ -45,6 +45,7 @@ func NewOrderSummary(o *orderdomain.Order) OrderSummary {
 	for _, item := range o.Items {
 		resp := newOrderItemResp(&item)
 		resp.Instructions = nil
+		resp.RedeemURL = ""
 		s.Items = append(s.Items, resp)
 	}
 	for i := range o.Children {
@@ -151,6 +152,7 @@ func NewOrderDetail(o *orderdomain.Order) OrderDetail {
 		resp := newOrderItemResp(&item)
 		if !paid {
 			resp.Instructions = nil
+			resp.RedeemURL = ""
 		}
 		d.Items = append(d.Items, resp)
 	}
@@ -263,6 +265,8 @@ type OrderItemResp struct {
 	// 仅在订单已付款时填充，未付款订单会在 NewOrderDetail 中置 nil；列表场景（NewOrderSummary）永远为 nil。
 	// 注意：渠道 API（channel_order.go）为服务端消费者（如 Telegram Bot），那里返回已按 locale 解析的字符串而非 raw JSON。
 	Instructions jsonmap.JSON `json:"instructions,omitempty"`
+	// RedeemURL 兑换地址模板。仅已付款的订单详情返回，列表不返回。
+	RedeemURL string `json:"redeem_url,omitempty"`
 }
 
 func newOrderItemResp(item *orderdomain.OrderItem) OrderItemResp {
@@ -287,6 +291,7 @@ func newOrderItemResp(item *orderdomain.OrderItem) OrderItemResp {
 		ManualFormSchemaSnapshot: item.ManualFormSchemaSnapshotJSON,
 		ManualFormSubmission:     item.ManualFormSubmissionJSON,
 		Instructions:             item.InstructionsJSON,
+		RedeemURL:                item.RedeemURL,
 	}
 	// 注意：CostPrice 不在 DTO 中，白名单模式天然排除
 }

@@ -33,6 +33,7 @@ type OrderItem struct {
 	ManualFormSchemaSnapshotJSON jsonmap.JSON      `gorm:"type:json" json:"manual_form_schema_snapshot"`                           // 人工交付表单 schema 快照
 	ManualFormSubmissionJSON     jsonmap.JSON      `gorm:"type:json" json:"manual_form_submission"`                                // 人工交付表单提交值
 	InstructionsJSON             jsonmap.JSON      `gorm:"type:json" json:"instructions"`                                          // 交付后使用说明快照（多语言）
+	RedeemURL                    string            `gorm:"type:varchar(500);not null;default:''" json:"redeem_url"`                // 兑换地址模板快照
 	CreatedAt                    time.Time         `gorm:"index" json:"created_at"`                                                // 创建时间
 	UpdatedAt                    time.Time         `gorm:"index" json:"updated_at"`                                                // 更新时间
 	DeletedAt                    *time.Time        `gorm:"index" json:"-"`                                                         // 软删除时间

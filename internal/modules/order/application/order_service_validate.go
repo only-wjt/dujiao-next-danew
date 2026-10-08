@@ -253,6 +253,7 @@ func (s *OrderService) buildOrderResult(input orderCreateParams) (*orderBuildRes
 			ManualFormSchemaSnapshotJSON: manualSchemaSnapshot,
 			ManualFormSubmissionJSON:     manualSubmission,
 			InstructionsJSON:             product.InstructionsJSON,
+			RedeemURL:                    product.RedeemURL,
 			CreatedAt:                    now,
 			UpdatedAt:                    now,
 		}
