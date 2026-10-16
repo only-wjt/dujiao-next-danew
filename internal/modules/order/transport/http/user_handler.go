@@ -3,6 +3,7 @@ package orderhttp
 import (
 	"errors"
 	"strings"
+	"time"
 
 	orderdomain "github.com/dujiao-next/internal/modules/order/domain"
 
@@ -68,6 +69,11 @@ type OrderPaymentChannelsRequest struct {
 	Items   []OrderItemRequest `json:"items"`
 }
 
+// DeliveryStateResolver 返回实时发码订单的用户端发货状态（可选端口）。
+type DeliveryStateResolver interface {
+	ResolveDeliveryState(order *orderdomain.Order, fallbackPaidAt *time.Time) string
+}
+
 // UserHandler 处理前台用户订单 HTTP（只读 + 取消 + 支付渠道查询）。
 type UserHandler struct {
 	orders         UserOrderQuery
@@ -75,6 +81,12 @@ type UserHandler struct {
 	refunds        RefundRecordDirectory
 	users          UserLookup
 	paymentRecords PaymentDirectory
+	deliveryStates DeliveryStateResolver
+}
+
+// SetDeliveryStateResolver 注入实时发码发货状态解析。
+func (h *UserHandler) SetDeliveryStateResolver(resolver DeliveryStateResolver) {
+	h.deliveryStates = resolver
 }
 
 func NewUserHandler(orders UserOrderQuery, payments PaymentChannelPolicy, refunds RefundRecordDirectory, users UserLookup, paymentRecords PaymentDirectory) *UserHandler {
@@ -174,6 +186,7 @@ func (h *UserHandler) GetOrderByOrderNo(c *gin.Context) {
 	enrichOrderWithAllowedChannels(h.payments, order, &orderDetail)
 	enrichOrderWithRefundRecords(h.refunds, order, &orderDetail)
 	enrichOrderWithPaymentFee(h.paymentRecords, order, &orderDetail)
+	enrichOrderWithDeliveryState(h.deliveryStates, order, &orderDetail)
 	response.Success(c, orderDetail)
 }
 
@@ -484,4 +497,21 @@ func collectFulfillmentPayload(order *orderdomain.Order) string {
 		}
 	}
 	return strings.Join(parts, "\n")
+}
+
+// enrichOrderWithDeliveryState 为未交付的实时发码订单（含子订单）填充用户端发货状态。
+func enrichOrderWithDeliveryState(resolver DeliveryStateResolver, order *orderdomain.Order, detail *orderpresenter.OrderDetail) {
+	if resolver == nil || order == nil || detail == nil {
+		return
+	}
+	if len(order.Children) == 0 {
+		detail.DeliveryState = resolver.ResolveDeliveryState(order, order.PaidAt)
+		return
+	}
+	for i := range order.Children {
+		if i >= len(detail.Children) {
+			break
+		}
+		detail.Children[i].DeliveryState = resolver.ResolveDeliveryState(&order.Children[i], order.PaidAt)
+	}
 }

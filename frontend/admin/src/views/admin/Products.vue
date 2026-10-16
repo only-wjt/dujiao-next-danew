@@ -224,6 +224,9 @@ const manualStockBadgeClass = (product: AdminProduct) => {
   return 'border-emerald-200 bg-emerald-50 text-emerald-700'
 }
 
+// 实时发码商品的可用库存由后端统一置为 -1（不限量）。
+const isRealtimeIssueProduct = (product: AdminProduct) => product?.fulfillment_type === 'auto' && Number(product?.auto_stock_available) < 0
+
 const autoStockBadgeClass = (product: AdminProduct) => {
   const available = toSafeInt(product?.auto_stock_available)
   if (available <= 0) {
@@ -651,7 +654,13 @@ watch(
                       {{ formatManualStockSummary(product) }}
                     </span>
                     <span
-                      v-if="product.fulfillment_type === 'auto'"
+                      v-if="isRealtimeIssueProduct(product)"
+                      class="rounded-full border border-violet-200 bg-violet-50 px-2 py-0.5 text-[11px] text-violet-700"
+                    >
+                      {{ t('admin.cdkIssue.product.listBadge') }}
+                    </span>
+                    <span
+                      v-if="product.fulfillment_type === 'auto' && !isRealtimeIssueProduct(product)"
                       class="rounded-full border px-2 py-0.5 text-[11px]"
                       :class="autoStockBadgeClass(product)"
                     >

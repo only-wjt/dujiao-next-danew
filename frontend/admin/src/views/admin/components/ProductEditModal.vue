@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { adminAPI } from '@/api/admin'
 import type { AdminProduct, AdminCategory, AdminProductSKU, AdminPaymentChannel, LocalizedText } from '@/api/types'
 import MediaPicker from '@/components/admin/MediaPicker.vue'
+import ProductCdkIssueSection from './ProductCdkIssueSection.vue'
 import RichEditor from '@/components/RichEditor.vue'
 // image utils removed - MediaPicker handles image display
 import { Button } from '@/components/ui/button'
@@ -39,6 +40,7 @@ const editingIsMapped = ref(false)
 const initialCategoryID = ref<number | null>(null)
 const newTag = ref('')
 const currentLang = ref('zh-CN')
+const cdkIssueSection = ref<InstanceType<typeof ProductCdkIssueSection> | null>(null)
 
 const languages = computed(() => [
   { code: 'zh-CN', name: t('admin.common.lang.zhCN') },
@@ -631,10 +633,35 @@ const handleSubmit = async () => {
       manual_form_schema: normalizeManualFormSchemaForSubmit(),
     }
 
+    const cdkIssueError = form.fulfillment_type === 'auto' ? cdkIssueSection.value?.validate() : ''
+    if (cdkIssueError) {
+      throw new Error(cdkIssueError)
+    }
+
+    let savedProductId = form.id
     if (isEditing.value) {
       await adminAPI.updateProduct(form.id, payload as unknown as Partial<AdminProduct>)
     } else {
-      await adminAPI.createProduct(payload as unknown as Partial<AdminProduct>)
+      const res = await adminAPI.createProduct(payload as unknown as Partial<AdminProduct>)
+      savedProductId = Number(res.data?.data?.id || 0)
+    }
+
+    if (cdkIssueSection.value && savedProductId > 0) {
+      if (form.fulfillment_type !== 'auto') {
+        cdkIssueSection.value.forceStock()
+      }
+      try {
+        const detail = await adminAPI.getProduct(savedProductId)
+        const savedSkus = ((detail.data?.data?.skus || []) as AdminProductSKU[]).map((sku) => ({ id: sku.id, sku_code: sku.sku_code }))
+        await cdkIssueSection.value.save(savedProductId, savedSkus)
+      } catch (err: any) {
+        // 商品已保存，只有发码设置失败：切到编辑态，避免再次提交重复建商品。
+        form.id = savedProductId
+        isEditing.value = true
+        emit('success')
+        notifyError(t('admin.cdkIssue.product.bindingSaveFailed', { message: err?.response?.data?.message || err?.message || '' }))
+        return
+      }
     }
     closeModal()
     emit('success')
@@ -953,6 +980,15 @@ watch(
               </div>
             </div>
           </div>
+
+          <ProductCdkIssueSection
+            v-if="!editingIsMapped"
+            v-show="form.fulfillment_type === 'auto'"
+            ref="cdkIssueSection"
+            :product-id="productId"
+            :skus="form.skus"
+            :current-lang="currentLang"
+          />
 
           <div class="col-span-1 md:col-span-2 rounded-xl border border-border bg-muted/20 p-4 space-y-4">
             <div class="flex items-center justify-between">

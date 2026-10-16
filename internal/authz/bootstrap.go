@@ -42,6 +42,9 @@ func BuiltinRoleSeeds() []RoleSeed {
 			Policies: []Policy{
 				{Object: "/admin/products", Action: "*"},
 				{Object: "/admin/products/:id", Action: "*"},
+				{Object: "/admin/cdk-issue/products/:id/binding", Action: "*"},
+				{Object: "/admin/cdk-issue/overview", Action: "GET"},
+				{Object: "/admin/cdk-issue/config", Action: "GET"}, // 商品弹窗读取脱敏配置（不含密钥）
 				{Object: "/admin/products/:id/wholesale-prices", Action: "PATCH"},
 				{Object: "/admin/categories", Action: "*"},
 				{Object: "/admin/categories/:id", Action: "*"},
@@ -100,6 +103,7 @@ func BuiltinRoleSeeds() []RoleSeed {
 			Policies: []Policy{
 				{Object: "/admin/orders", Action: "GET"},
 				{Object: "/admin/orders/:id", Action: "GET"},
+				{Object: "/admin/cdk-issue/orders/:id/requests", Action: "GET"},
 				{Object: "/admin/orders/:id/fulfillment/download", Action: "GET"},
 				{Object: "/admin/order-refunds", Action: "GET"},
 				{Object: "/admin/order-refunds/:id", Action: "GET"},
@@ -147,6 +151,15 @@ func BuiltinRoleSeeds() []RoleSeed {
 				{Object: "/admin/procurement-orders/:id/upstream-payload/download", Action: "GET"},
 				{Object: "/admin/procurement-orders/:id/retry", Action: "POST"},
 				{Object: "/admin/procurement-orders/:id/cancel", Action: "POST"},
+				{Object: "/admin/cdk-issue/config", Action: "*"},
+				{Object: "/admin/cdk-issue/config/test", Action: "POST"},
+				{Object: "/admin/cdk-issue/overview", Action: "GET"},
+				{Object: "/admin/cdk-issue/products/:id/binding", Action: "*"},
+				{Object: "/admin/cdk-issue/requests", Action: "GET"},
+				{Object: "/admin/cdk-issue/requests/stats", Action: "GET"},
+				{Object: "/admin/cdk-issue/requests/:id/retry", Action: "POST"},
+				{Object: "/admin/cdk-issue/orders/:id/requests", Action: "GET"},
+				{Object: "/admin/cdk-issue/orders/:id/disable-codes", Action: "POST"},
 				{Object: "/admin/reconciliation/run", Action: "POST"},
 				{Object: "/admin/reconciliation/jobs", Action: "GET"},
 				{Object: "/admin/reconciliation/jobs/:id", Action: "GET"},

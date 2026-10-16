@@ -6,6 +6,7 @@ import (
 
 	cardsecretdomain "github.com/dujiao-next/internal/modules/cardsecret/domain"
 	productdomain "github.com/dujiao-next/internal/modules/catalog/product/domain"
+	cdkissuedomain "github.com/dujiao-next/internal/modules/cdkissue/domain"
 
 	"github.com/dujiao-next/internal/constants"
 	"github.com/dujiao-next/internal/shared/jsonmap"
@@ -171,5 +172,36 @@ func TestGetInventoryAlertItemsFallsBackToProductLevelWhenOnlyInactiveAutoSKUHas
 	}
 	if rows[0].AlertType != constants.NotificationAlertTypeLowStockProducts {
 		t.Fatalf("fallback row alert type want low_stock_products got %s", rows[0].AlertType)
+	}
+}
+
+func TestInventoryAlertsSkipRealtimeIssueProducts(t *testing.T) {
+	store, db := setupDashboardRepositoryTest(t)
+	if err := db.AutoMigrate(&cardsecretdomain.Secret{}); err != nil {
+		t.Fatalf("migrate card secret failed: %v", err)
+	}
+	category := createDashboardCategory(t, db, "dashboard-realtime")
+	product := &productdomain.Product{
+		CategoryID:      category.ID,
+		Slug:            "dashboard-realtime",
+		TitleJSON:       jsonmap.JSON{"zh-CN": "实时发码商品"},
+		PriceAmount:     money.FromDecimal(decimal.NewFromInt(10)),
+		FulfillmentType: constants.FulfillmentTypeAuto,
+		IsActive:        true,
+	}
+	if err := db.Create(product).Error; err != nil {
+		t.Fatalf("create product failed: %v", err)
+	}
+	if err := db.Create(&cdkissuedomain.Binding{ProductID: product.ID, Plan: "plus", Enabled: true}).Error; err != nil {
+		t.Fatalf("create binding failed: %v", err)
+	}
+	rows, err := store.GetInventoryAlertItems(5)
+	if err != nil {
+		t.Fatalf("get inventory alert items failed: %v", err)
+	}
+	for _, row := range rows {
+		if row.ProductID == product.ID {
+			t.Fatalf("realtime issue product must not raise stock alerts: %+v", row)
+		}
 	}
 }

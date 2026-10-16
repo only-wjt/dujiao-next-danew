@@ -70,6 +70,8 @@ import (
 	resellergormstore "github.com/dujiao-next/internal/modules/reseller/infrastructure/gormstore"
 	settingsapp "github.com/dujiao-next/internal/modules/settings/application"
 	settingscontract "github.com/dujiao-next/internal/modules/settings/contract"
+	cdkissueapp "github.com/dujiao-next/internal/modules/cdkissue/application"
+	cdkissuecontract "github.com/dujiao-next/internal/modules/cdkissue/contract"
 	siteconnectionapp "github.com/dujiao-next/internal/modules/siteconnection/application"
 	siteconnectioncontract "github.com/dujiao-next/internal/modules/siteconnection/contract"
 	sitemapapp "github.com/dujiao-next/internal/modules/sitemap/application"
@@ -117,6 +119,7 @@ type Container struct {
 	ResellerStore          *resellergormstore.Store
 	ApiCredentialRepo      apicredentialcontract.Repository
 	SiteConnectionRepo     siteconnectioncontract.Repository
+	CDKIssueStore          cdkissuecontract.Store
 	ProductMappingRepo     *mappinggormstore.MappingStore
 	SKUMappingRepo         *mappinggormstore.SKUMappingStore
 	ProcurementOrderRepo   *procurementgormstore.Store
@@ -180,6 +183,7 @@ type Container struct {
 	ResellerOperationsService     *reseller.OperationsService
 	ApiCredentialService          *apicredentialapp.Service
 	SiteConnectionService         *siteconnectionapp.Service
+	CDKIssueService               *cdkissueapp.Service
 	ProductMappingService         *mappingapp.Service
 	ProcurementOrderService       *procurementapp.Service
 	DownstreamCallbackService     *downstreamcallbackapp.Service

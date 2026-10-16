@@ -24,6 +24,12 @@
               :downloading="fulfillmentDownloading"
               @download="emit('download', $event)"
             />
+            <PendingDeliveryCard
+              v-else-if="child.delivery_state"
+              :state="child.delivery_state"
+              :items="child.items"
+              :refresh="refresh"
+            />
             <div v-else class="rounded-md border border-dashed px-3 py-2.5 text-[13px] text-muted-foreground">{{ t('orderDetail.childFulfillmentEmpty') }}</div>
           </div>
 
@@ -53,6 +59,11 @@
         :downloading="fulfillmentDownloading"
         @download="emit('download', $event)"
       />
+    </section>
+
+    <section v-else-if="order.delivery_state" class="rounded-xl border bg-card p-[22px]">
+      <h2 class="mb-4 text-lg font-bold">{{ t('orderDetail.fulfillmentTitle') }}</h2>
+      <PendingDeliveryCard :state="order.delivery_state" :items="order.items" :refresh="refresh" />
     </section>
 
     <!-- 商品 -->
@@ -197,12 +208,14 @@ import { Badge } from '@/components/ui/badge'
 import DeliveryReadyBanner from '../../../components/order/DeliveryReadyBanner.vue'
 import VaultOrderItem from './VaultOrderItem.vue'
 import VaultOrderFulfillment from './VaultOrderFulfillment.vue'
+import PendingDeliveryCard from '../../../components/order/PendingDeliveryCard.vue'
 import { useOrderDisplayHelpers } from '../../../composables/useOrderDisplayHelpers'
 
 const props = defineProps<{
   order: any
   variant: 'user' | 'guest'
   fulfillmentDownloading: boolean
+  refresh?: () => Promise<void>
 }>()
 
 const emit = defineEmits<{

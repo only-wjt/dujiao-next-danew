@@ -338,7 +338,7 @@ import { useUserAuthStore } from '../stores/userAuth'
 import { useUserProfileStore } from '../stores/userProfile'
 import { getFirstImageUrl, getImageUrl } from '../utils/image'
 import { normalizeSkuId, buildSkuDisplayText } from '../utils/sku'
-import { resolveSkuAvailableStock, resolveSkuStockDisplay, type PublicStockDisplay } from '../utils/publicStock'
+import { normalizeAutoStockSnapshot, resolveSkuAvailableStock, resolveSkuStockDisplay, type PublicStockDisplay } from '../utils/publicStock'
 import { useLocalized, useProductLabels } from '../composables/useProduct'
 import { toast } from '../composables/useToast'
 import { X, Image as ImageIcon, Tag, Minus, Plus, ShoppingCart } from 'lucide-vue-next'
@@ -740,7 +740,7 @@ const handleAddToCart = () => {
     skuManualStockTotal: normalizeManualStockTotal(sku?.manual_stock_total),
     skuManualStockLocked: normalizeStockNumber(sku?.manual_stock_locked),
     skuManualStockSold: normalizeStockNumber(sku?.manual_stock_sold),
-    skuAutoStockAvailable: normalizeStockNumber(sku?.auto_stock_available),
+    skuAutoStockAvailable: normalizeAutoStockSnapshot(sku?.auto_stock_available),
     skuUpstreamStock: normalizeManualStockTotal(sku?.upstream_stock),
     skuStockStatus: String(sku?.stock_status || ''),
     skuStockDisplayMode: String(sku?.stock_display_mode || props.product?.stock_display_mode || ''),
@@ -794,7 +794,7 @@ const handleBuyNow = () => {
     skuManualStockTotal: normalizeManualStockTotal(sku?.manual_stock_total),
     skuManualStockLocked: normalizeStockNumber(sku?.manual_stock_locked),
     skuManualStockSold: normalizeStockNumber(sku?.manual_stock_sold),
-    skuAutoStockAvailable: normalizeStockNumber(sku?.auto_stock_available),
+    skuAutoStockAvailable: normalizeAutoStockSnapshot(sku?.auto_stock_available),
     skuUpstreamStock: normalizeManualStockTotal(sku?.upstream_stock),
     skuStockStatus: String(sku?.stock_status || ''),
     skuStockDisplayMode: String(sku?.stock_display_mode || props.product?.stock_display_mode || ''),

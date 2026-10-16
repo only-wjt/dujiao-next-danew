@@ -14,6 +14,7 @@ import type {
   AdminPaymentChannel,
   AdminUser,
   AdminSiteConnection,
+  AdminCdkIssueBinding,
   AdminResellerProfileApprovePayload,
   AdminResellerProfileUpdatePayload,
   AdminResellerProductSettingUpdatePayload,
@@ -593,6 +594,19 @@ export const adminAPI = {
   downloadProcurementUpstreamPayload: (id: number) => api.get(`/admin/procurement-orders/${id}/upstream-payload/download`, { blob: true }),
   retryProcurementOrder: (id: number) => api.post(`/admin/procurement-orders/${id}/retry`),
   cancelProcurementOrder: (id: number) => api.post(`/admin/procurement-orders/${id}/cancel`),
+
+  // ZovoCard 实时发码
+  getCdkIssueConfig: () => api.get('/admin/cdk-issue/config'),
+  updateCdkIssueConfig: (data: Record<string, unknown>) => api.put('/admin/cdk-issue/config', data),
+  testCdkIssueConfig: (data: Record<string, unknown>) => api.post('/admin/cdk-issue/config/test', data),
+  getCdkIssueOverview: (refresh = false) => api.get('/admin/cdk-issue/overview', { params: refresh ? { refresh: 1 } : {} }),
+  getCdkIssueBinding: (productId: number) => api.get(`/admin/cdk-issue/products/${productId}/binding`),
+  saveCdkIssueBinding: (productId: number, data: AdminCdkIssueBinding) => api.put(`/admin/cdk-issue/products/${productId}/binding`, data),
+  getCdkIssueRequests: (params?: Record<string, unknown>) => api.get('/admin/cdk-issue/requests', { params }),
+  getCdkIssueStats: (params?: Record<string, unknown>) => api.get('/admin/cdk-issue/requests/stats', { params }),
+  retryCdkIssueRequest: (id: number, mode: 'same_key' | 'new_key') => api.post(`/admin/cdk-issue/requests/${id}/retry`, { mode }),
+  getOrderCdkIssueRequests: (orderId: number) => api.get(`/admin/cdk-issue/orders/${orderId}/requests`),
+  disableOrderCdkIssueCodes: (orderId: number) => api.post(`/admin/cdk-issue/orders/${orderId}/disable-codes`),
 
   // 对账管理
   runReconciliation: (data: { connection_id: number; type: string; time_range_start: string; time_range_end: string }) => api.post('/admin/reconciliation/run', data),

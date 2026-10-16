@@ -30,6 +30,7 @@ import (
 	reconciliationgormstore "github.com/dujiao-next/internal/modules/reconciliation/infrastructure/gormstore"
 	resellergormstore "github.com/dujiao-next/internal/modules/reseller/infrastructure/gormstore"
 	settingsstore "github.com/dujiao-next/internal/modules/settings/infrastructure/gormstore"
+	cdkissuegormstore "github.com/dujiao-next/internal/modules/cdkissue/infrastructure/gormstore"
 	siteconnectiongormstore "github.com/dujiao-next/internal/modules/siteconnection/infrastructure/gormstore"
 	broadcaststore "github.com/dujiao-next/internal/modules/telegram/broadcast/infrastructure/gormstore"
 	walletgormstore "github.com/dujiao-next/internal/modules/wallet/infrastructure/gormstore"
@@ -71,6 +72,7 @@ func (c *Container) initRepositories() error {
 	c.ResellerStore = resellergormstore.New(db)
 	c.ApiCredentialRepo = apicredentialgormstore.New(db)
 	c.SiteConnectionRepo = siteconnectiongormstore.New(db)
+	c.CDKIssueStore = cdkissuegormstore.New(db)
 	c.ProductMappingRepo = mappinggormstore.NewMappingStore(db)
 	c.SKUMappingRepo = mappinggormstore.NewSKUMappingStore(db)
 	c.ProcurementOrderRepo = procurementgormstore.New(db)

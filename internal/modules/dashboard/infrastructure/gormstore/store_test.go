@@ -13,6 +13,7 @@ import (
 	productdomain "github.com/dujiao-next/internal/modules/catalog/product/domain"
 
 	categorydomain "github.com/dujiao-next/internal/modules/catalog/category/domain"
+	cdkissuedomain "github.com/dujiao-next/internal/modules/cdkissue/domain"
 
 	userdomain "github.com/dujiao-next/internal/modules/identity/user/domain"
 
@@ -40,6 +41,9 @@ func setupDashboardRepositoryTest(t *testing.T) (*Store, *gorm.DB) {
 	}
 	if err := db.AutoMigrate(&paymentdomain.PaymentChannel{}, &paymentdomain.Payment{}, &orderdomain.OrderRefundRecord{}); err != nil {
 		t.Fatalf("migrate dashboard models failed: %v", err)
+	}
+	if err := db.AutoMigrate(&cdkissuedomain.Binding{}); err != nil {
+		t.Fatalf("migrate cdk issue bindings failed: %v", err)
 	}
 	return New(db), db
 }

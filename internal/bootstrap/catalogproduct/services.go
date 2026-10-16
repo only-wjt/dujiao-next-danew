@@ -70,6 +70,8 @@ type Dependencies struct {
 	ProductMappings   MappingStore
 	Orders            OrderReader
 	PaymentChannels   paymentcontract.ChannelStore
+	// Realtime 可选：ZovoCard 实时发码库存覆盖。
+	Realtime productapplication.RealtimeStockResolver
 }
 
 // Services 是 Product 查询、管理和写入用例的显式集合。
@@ -195,6 +197,7 @@ func New(dependencies Dependencies) Services {
 		Products:   dependencies.Products,
 		Categories: dependencies.Categories,
 		Stock:      dependencies.CardSecrets,
+		Realtime:   dependencies.Realtime,
 	})
 	admin := productadmin.NewAdminService(productadmin.Options{
 		Products:     dependencies.Products,

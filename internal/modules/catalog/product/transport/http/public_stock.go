@@ -84,14 +84,23 @@ func (h *PublicHandler) decorateProductStock(product *productdomain.Product, ite
 	autoTotal := int64(0)
 	autoLocked := int64(0)
 	autoSold := int64(0)
+	autoUnlimited := false
 	for _, sku := range product.SKUs {
 		if !sku.IsActive {
 			continue
 		}
-		autoAvailable += sku.AutoStockAvailable
+		if sku.AutoStockAvailable < 0 {
+			// 实时发码 SKU：不限量。
+			autoUnlimited = true
+		} else {
+			autoAvailable += sku.AutoStockAvailable
+		}
 		autoTotal += sku.AutoStockTotal
 		autoLocked += sku.AutoStockLocked
 		autoSold += sku.AutoStockSold
+	}
+	if autoUnlimited || (len(product.SKUs) == 0 && product.AutoStockAvailable < 0) {
+		autoAvailable = -1
 	}
 	item.AutoStockAvailable = autoAvailable
 	item.AutoStockTotal = autoTotal

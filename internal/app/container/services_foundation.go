@@ -2,6 +2,7 @@ package container
 
 import (
 	"github.com/dujiao-next/internal/authz"
+	cdkissuebootstrap "github.com/dujiao-next/internal/bootstrap/cdkissue"
 	catalogproductbootstrap "github.com/dujiao-next/internal/bootstrap/catalogproduct"
 	mailbrandwiring "github.com/dujiao-next/internal/bootstrap/mailbrand"
 	telegramauthcache "github.com/dujiao-next/internal/bootstrap/telegramauthcache"
@@ -130,6 +131,13 @@ func (c *Container) initIdentityAndCatalogServices() {
 		MaxHeight:         c.Config.Upload.MaxHeight,
 	}, uploadlocal.New("uploads"))
 	c.AffiliateService = affiliateapp.NewService(c.AffiliateRepo, c.UserStore, c.OrderStore, c.ProductRepo, c.SettingService)
+	c.CDKIssueService = cdkissuebootstrap.New(cdkissuebootstrap.Dependencies{
+		Store:        c.CDKIssueStore,
+		Products:     c.ProductRepo,
+		SKUs:         c.ProductSKURepo,
+		Queue:        c.QueueClient,
+		AppSecretKey: c.Config.App.SecretKey,
+	})
 	productServices := catalogproductbootstrap.New(catalogproductbootstrap.Dependencies{
 		Products:          c.ProductRepo,
 		SKUs:              c.ProductSKURepo,
@@ -141,6 +149,7 @@ func (c *Container) initIdentityAndCatalogServices() {
 		ProductMappings:   c.ProductMappingRepo,
 		Orders:            c.OrderStore,
 		PaymentChannels:   c.PaymentChannelStore,
+		Realtime:          c.CDKIssueService,
 	})
 	c.ProductReadService = productServices.Read
 	c.ProductAdminService = productServices.Admin

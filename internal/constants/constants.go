@@ -578,6 +578,7 @@ const (
 	NotificationBizTypePaymentCallback = "payment_callback"
 	NotificationBizTypeProcurement     = "procurement"
 	NotificationBizTypeReconciliation  = "reconciliation"
+	NotificationBizTypeCDKIssue        = "cdk_issue"
 )
 
 // 对账差异类型常量

@@ -98,3 +98,11 @@ export const resolveSkuStockDisplay = (product: any, sku: any): PublicStockDispl
   if (status === STOCK_STATUS_LOW_STOCK) return { kind: 'low_stock' }
   return { kind: 'in_stock' }
 }
+
+/** 购物车快照用：负数（实时发码不限量）保留为 -1，其余按非负整数处理。 */
+export const normalizeAutoStockSnapshot = (value: unknown): number => {
+  const n = Number(value)
+  if (!Number.isFinite(n)) return 0
+  if (n < 0) return -1
+  return Math.floor(n)
+}

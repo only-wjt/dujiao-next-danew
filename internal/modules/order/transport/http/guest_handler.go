@@ -27,6 +27,12 @@ type GuestHandler struct {
 	payments       PaymentChannelPolicy
 	refunds        RefundRecordDirectory
 	paymentRecords PaymentDirectory
+	deliveryStates DeliveryStateResolver
+}
+
+// SetDeliveryStateResolver 注入实时发码发货状态解析。
+func (h *GuestHandler) SetDeliveryStateResolver(resolver DeliveryStateResolver) {
+	h.deliveryStates = resolver
 }
 
 func NewGuestHandler(orders GuestOrderQuery, payments PaymentChannelPolicy, refunds RefundRecordDirectory, paymentRecords PaymentDirectory) *GuestHandler {
@@ -115,6 +121,7 @@ func (h *GuestHandler) GetGuestOrderByOrderNo(c *gin.Context) {
 	enrichOrderWithAllowedChannels(h.payments, order, &orderDetail)
 	enrichOrderWithRefundRecords(h.refunds, order, &orderDetail)
 	enrichOrderWithPaymentFee(h.paymentRecords, order, &orderDetail)
+	enrichOrderWithDeliveryState(h.deliveryStates, order, &orderDetail)
 	response.Success(c, orderDetail)
 }
 

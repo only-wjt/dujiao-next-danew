@@ -37,11 +37,18 @@ type StockCounter interface {
 	CountStockByProductIDs(productIDs []uint) ([]cardsecretcontract.SKUStockCount, error)
 }
 
+// RealtimeStockResolver 返回实时发码商品的展示库存（-1 不限量，0 售罄）。
+type RealtimeStockResolver interface {
+	RealtimeStock(productIDs []uint) (map[uint]int64, error)
+}
+
 // Options 描述 Product 读取应用服务的端口和领域错误。
 type Options struct {
 	Products   ProductRepository
 	Categories CategoryRepository
 	Stock      StockCounter
+	// Realtime 可选：ZovoCard 实时发码商品的库存覆盖。
+	Realtime RealtimeStockResolver
 }
 
 // Service 编排商品查询、租户可见性和库存聚合。
@@ -49,6 +56,7 @@ type Service struct {
 	products   ProductRepository
 	categories CategoryRepository
 	stock      StockCounter
+	realtime   RealtimeStockResolver
 }
 
 // NewService 创建 Product 读取应用服务。
@@ -57,6 +65,7 @@ func NewService(options Options) *Service {
 		products:   options.Products,
 		categories: options.Categories,
 		stock:      options.Stock,
+		realtime:   options.Realtime,
 	}
 }
 

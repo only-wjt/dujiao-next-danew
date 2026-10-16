@@ -45,6 +45,7 @@ import {
   Crown,
   Bell,
   ImageIcon,
+  Zap,
 } from 'lucide-vue-next'
 import { Menu } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
@@ -433,6 +434,18 @@ const navGroups = computed<NavGroup[]>(() => {
           to: '/procurement-orders',
           icon: Truck,
           permission: 'GET:/admin/procurement-orders',
+        },
+        {
+          label: t('admin.navItems.cdkIssueSettings'),
+          to: '/settings/cdk-issue',
+          icon: Zap,
+          permission: 'GET:/admin/cdk-issue/config',
+        },
+        {
+          label: t('admin.navItems.cdkIssueRequests'),
+          to: '/cdk-issue/requests',
+          icon: KeyRound,
+          permission: 'GET:/admin/cdk-issue/requests',
         },
         {
           label: t('admin.navItems.reconciliation'),

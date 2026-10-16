@@ -50,6 +50,7 @@
         :order="order"
         variant="user"
         :fulfillment-downloading="fulfillmentDownloading"
+        :refresh="refreshOrder"
         @download="handleDownloadFulfillment"
       />
     </template>
@@ -67,7 +68,7 @@ import { useOrderDetail } from '../../composables/useOrderDetail'
 const { t } = useI18n()
 
 const {
-  loading, order, debouncedLoadOrder, cancelOrder, fulfillmentDownloading, handleDownloadFulfillment,
+  loading, order, debouncedLoadOrder, cancelOrder, fulfillmentDownloading, handleDownloadFulfillment, refreshOrder,
   statusLabel, statusVariant, formatDate, formatMoney, orderPaidAmount,
 } = useOrderDetail()
 </script>

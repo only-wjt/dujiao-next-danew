@@ -1229,3 +1229,99 @@ export interface AdminResellerOperationsFinance {
     frozen_balance_accounts: number
   }>
 }
+
+// ZovoCard 实时发码
+export type CdkIssueRequestStatus = 'pending' | 'succeeded' | 'failed' | 'unknown'
+export type CdkIssueRetryMode = 'same_key' | 'new_key' | ''
+
+export interface AdminCdkIssueConfig {
+  enabled: boolean
+  active: boolean
+  environment: 'sandbox' | 'production'
+  base_url: string
+  app_id: string
+  has_secret: boolean
+  secret_hint: string
+  default_payment_country: string
+  min_spendable_balance: string | number
+  queue_enabled: boolean
+}
+
+export interface AdminCdkIssuePlan {
+  key: string
+  label: string
+  purchasable: boolean
+  service_fee_usd_minor: number
+  sort_order: number
+  checkout_currency?: string
+  checkout_amount_minor?: number
+}
+
+export interface AdminCdkIssuePaymentRegion {
+  country: string
+  currency: string
+}
+
+export interface AdminCdkIssueOverview {
+  balance: {
+    balance: string | number
+    spendable_balance: string | number
+    account_reserve_amount: string | number
+  }
+  plans: AdminCdkIssuePlan[]
+  payment_regions: AdminCdkIssuePaymentRegion[]
+  checked_at: string
+}
+
+export interface AdminCdkIssueSKUBinding {
+  sku_id: number
+  plan: string
+  payment_country: string
+}
+
+export interface AdminCdkIssueBinding {
+  product_id?: number
+  enabled: boolean
+  plan: string
+  payment_country: string
+  skus: AdminCdkIssueSKUBinding[]
+}
+
+export interface AdminCdkIssueRequest {
+  id: number
+  root_order_id: number
+  order_id: number
+  order_no: string
+  order_item_id: number
+  chunk_index: number
+  product_id: number
+  item_title: LocalizedText | null
+  sku_id: number
+  plan: string
+  payment_country: string
+  count: number
+  key_version: number
+  idempotency_key: string
+  status: CdkIssueRequestStatus
+  attempts: number
+  last_http_status: number
+  last_error_code: string
+  last_error_msg: string
+  issued_count: number
+  fee_amount_minor: number
+  provider_cdk_ids: number[] | null
+  delivered_at: string | null
+  codes_disabled_at: string | null
+  created_at: string
+  updated_at: string
+  retry_mode: CdkIssueRetryMode
+  can_disable_codes: boolean
+}
+
+export interface AdminCdkIssueStats {
+  total: number
+  pending: number
+  succeeded: number
+  failed: number
+  unknown: number
+}

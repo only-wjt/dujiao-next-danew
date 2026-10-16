@@ -264,6 +264,13 @@ func (c *Consumer) handleOrderAutoFulfill(_ context.Context, task *asynq.Task) e
 		case errors.Is(err, orderapp.ErrOrderNotFound):
 			logger.Debugw("worker_order_auto_fulfill_skip_order_not_found", "order_id", payload.OrderID)
 			return nil
+		case errors.Is(err, fulfillmentapp.ErrRealtimeIssueHalted):
+			// 卡台明确拒绝或结果不明：已告警，等待管理员在后台重试，不再自动重试。
+			logger.Warnw("worker_order_auto_fulfill_realtime_halted", "order_id", payload.OrderID)
+			return nil
+		case errors.Is(err, fulfillmentapp.ErrRealtimeIssueRetryable):
+			logger.Infow("worker_order_auto_fulfill_realtime_retry", "order_id", payload.OrderID)
+			return err
 		default:
 			logger.Warnw("worker_order_auto_fulfill_failed", "order_id", payload.OrderID, "error", err)
 			return err

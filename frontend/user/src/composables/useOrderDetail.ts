@@ -6,6 +6,7 @@ import { debounceAsync } from '../utils/debounce'
 import { useConfirmDialog } from './useConfirmDialog'
 import { toast } from './useToast'
 import { useOrderDisplayHelpers } from './useOrderDisplayHelpers'
+import { useDeliveryPolling } from './useDeliveryPolling'
 
 /**
  * 已登录用户订单详情逻辑（classic + vault 共用）。
@@ -53,6 +54,16 @@ export function useOrderDetail() {
 
   const debouncedLoadOrder = debounceAsync(loadOrder, 300)
 
+  // 静默刷新：不切换骨架屏，用于实时发码订单的轮询。
+  const refreshOrder = async () => {
+    const orderNo = String(route.params.order_no || '').trim()
+    if (!orderNo) return
+    const response = await userOrderAPI.detail(orderNo)
+    order.value = response.data.data
+  }
+
+  useDeliveryPolling(order, refreshOrder)
+
   const cancelOrder = async () => {
     if (!order.value) return
     const confirmed = await showConfirm({
@@ -87,6 +98,7 @@ export function useOrderDetail() {
     loading,
     order,
     debouncedLoadOrder,
+    refreshOrder,
     cancelOrder,
     fulfillmentDownloading,
     handleDownloadFulfillment,

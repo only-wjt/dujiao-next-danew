@@ -92,6 +92,12 @@
                   :downloading="fulfillmentDownloading"
                   @download="handleDownloadFulfillment"
                 />
+                <PendingDeliveryCard
+                  v-else-if="child.delivery_state"
+                  :state="child.delivery_state"
+                  :items="child.items"
+                  :refresh="refreshOrder"
+                />
                 <div v-else class="rounded-xl border border-dashed px-3 py-2.5 text-sm text-muted-foreground">{{ t('orderDetail.childFulfillmentEmpty') }}</div>
               </div>
               <div class="mt-5 border-t pt-4">
@@ -182,6 +188,12 @@
             :downloading="fulfillmentDownloading"
             @download="handleDownloadFulfillment"
           />
+        </div>
+        <div v-else-if="order.delivery_state" class="rounded-2xl border bg-card shadow-sm p-6">
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="text-lg font-bold">{{ t('orderDetail.fulfillmentTitle') }}</h2>
+          </div>
+          <PendingDeliveryCard :state="order.delivery_state" :items="order.items" :refresh="refreshOrder" />
         </div>
 
         <div class="rounded-2xl border bg-card shadow-sm p-6">
@@ -390,6 +402,7 @@ import { Input } from '@/components/ui/input'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import DeliveryReadyBanner from '../components/order/DeliveryReadyBanner.vue'
 import VaultOrderFulfillment from '../templates/vault/components/VaultOrderFulfillment.vue'
+import PendingDeliveryCard from '../components/order/PendingDeliveryCard.vue'
 import { useGuestOrderDetail } from '../composables/useGuestOrderDetail'
 
 const { t } = useI18n()
@@ -402,5 +415,6 @@ const {
   refundReasonText, showRefundRecordsCard, refundRecords, showTimeCard,
   orderItemImage, orderItemSkuText, manualSubmissionRows,
   hasItemDiscount, formatItemDiscountTotal, formatItemPaidAmount, resolvedChildStatus, orderPaidAmount,
+  refreshOrder,
 } = useGuestOrderDetail()
 </script>

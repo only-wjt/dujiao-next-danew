@@ -5,6 +5,7 @@ import (
 
 	cardsecretdomain "github.com/dujiao-next/internal/modules/cardsecret/domain"
 	productdomain "github.com/dujiao-next/internal/modules/catalog/product/domain"
+	cdkissuedomain "github.com/dujiao-next/internal/modules/cdkissue/domain"
 
 	"github.com/dujiao-next/internal/constants"
 	dashboard "github.com/dujiao-next/internal/modules/dashboard/contract"
@@ -50,6 +51,10 @@ func (r *Store) GetStockStats(lowStockThreshold int64) (dashboard.StockStatsRow,
 		}).
 		Where("deleted_at IS NULL AND is_active = ?", true).
 		Find(&products).Error; err != nil {
+		return result, err
+	}
+	products, err := r.excludeRealtimeIssueProducts(products)
+	if err != nil {
 		return result, err
 	}
 
@@ -184,6 +189,10 @@ func (r *Store) GetInventoryAlertItems(lowStockThreshold int64) ([]dashboard.Inv
 		Where("deleted_at IS NULL AND is_active = ?", true).
 		Order("sort_order DESC, created_at DESC").
 		Find(&products).Error; err != nil {
+		return nil, err
+	}
+	products, err := r.excludeRealtimeIssueProducts(products)
+	if err != nil {
 		return nil, err
 	}
 
@@ -391,4 +400,32 @@ func resolveDashboardLegacyStockTargetSKUIndex(skus []productdomain.ProductSKU) 
 		}
 	}
 	return firstActiveIdx
+}
+
+// excludeRealtimeIssueProducts 排除 ZovoCard 实时发码商品：它们不持有库存卡密，
+// 不应计入库存统计，也不应触发缺货告警。
+func (r *Store) excludeRealtimeIssueProducts(products []productdomain.Product) ([]productdomain.Product, error) {
+	if len(products) == 0 {
+		return products, nil
+	}
+	ids := make([]uint, 0)
+	if err := r.db.Model(&cdkissuedomain.Binding{}).
+		Where("sku_id = 0 AND enabled = ?", true).
+		Pluck("product_id", &ids).Error; err != nil {
+		return nil, err
+	}
+	if len(ids) == 0 {
+		return products, nil
+	}
+	realtime := make(map[uint]bool, len(ids))
+	for _, id := range ids {
+		realtime[id] = true
+	}
+	kept := products[:0]
+	for _, product := range products {
+		if !realtime[product.ID] {
+			kept = append(kept, product)
+		}
+	}
+	return kept, nil
 }

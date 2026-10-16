@@ -8,6 +8,7 @@ import (
 	affiliatedomain "github.com/dujiao-next/internal/modules/affiliate/domain"
 	productcontract "github.com/dujiao-next/internal/modules/catalog/product/contract"
 	productdomain "github.com/dujiao-next/internal/modules/catalog/product/domain"
+	cdkissuecontract "github.com/dujiao-next/internal/modules/cdkissue/contract"
 	couponcontract "github.com/dujiao-next/internal/modules/coupon/contract"
 	coupondomain "github.com/dujiao-next/internal/modules/coupon/domain"
 	usercontract "github.com/dujiao-next/internal/modules/identity/user/contract"
@@ -50,6 +51,7 @@ type OrderService struct {
 	resellerAccounting      resellerAccountingTransactions
 	riskControlSvc          orderriskcontract.Controller
 	productMappingService   upstreamStockEnsurer
+	realtimeIssueChecker    cdkissuecontract.OrderabilityChecker
 	expireMinutes           int
 }
 
@@ -110,6 +112,14 @@ func (s *OrderService) SetProductMappingService(svc upstreamStockEnsurer) {
 		return
 	}
 	s.productMappingService = svc
+}
+
+// SetRealtimeIssueChecker 注入 ZovoCard 实时发码下单校验（为空时实时发码商品按普通自动发货处理）。
+func (s *OrderService) SetRealtimeIssueChecker(checker cdkissuecontract.OrderabilityChecker) {
+	if s == nil {
+		return
+	}
+	s.realtimeIssueChecker = checker
 }
 
 // NewOrderService 创建订单服务
@@ -185,6 +195,8 @@ type childOrderPlan struct {
 	WholesaleDiscount decimal.Decimal
 	CouponDiscount    decimal.Decimal
 	Currency          string
+	// Realtime 表示该项由 ZovoCard 实时发码，下单时不占用库存卡密。
+	Realtime bool
 }
 
 var allowedTransitions = map[string]map[string]bool{
@@ -642,7 +654,7 @@ func (s *OrderService) createOrder(input orderCreateParams) (*orderdomain.Order,
 				}
 			}
 
-			if strings.TrimSpace(plan.Item.FulfillmentType) == constants.FulfillmentTypeAuto {
+			if strings.TrimSpace(plan.Item.FulfillmentType) == constants.FulfillmentTypeAuto && !plan.Realtime {
 				secretRepo := tx.CardSecrets()
 				rows, err := secretRepo.ListAvailableByProductForUpdate(plan.Item.ProductID, plan.Item.SKUID, plan.Item.Quantity)
 				if err != nil {

@@ -1,6 +1,7 @@
 package application
 
 import (
+	"errors"
 	"fmt"
 	"net/mail"
 	"strconv"
@@ -12,6 +13,8 @@ import (
 	"github.com/dujiao-next/internal/constants"
 	productdomain "github.com/dujiao-next/internal/modules/catalog/product/domain"
 	"github.com/dujiao-next/internal/modules/catalog/product/manualform"
+	cdkissuecontract "github.com/dujiao-next/internal/modules/cdkissue/contract"
+	cdkissuedomain "github.com/dujiao-next/internal/modules/cdkissue/domain"
 	couponapp "github.com/dujiao-next/internal/modules/coupon/application"
 	couponcontract "github.com/dujiao-next/internal/modules/coupon/contract"
 	coupondomain "github.com/dujiao-next/internal/modules/coupon/domain"
@@ -199,6 +202,17 @@ func (s *OrderService) buildOrderResult(input orderCreateParams) (*orderBuildRes
 				return nil, err
 			}
 		}
+		var realtimeIssue *cdkissuecontract.RealtimeIssueSnapshot
+		if fulfillmentType == constants.FulfillmentTypeAuto && s.realtimeIssueChecker != nil {
+			snapshot, err := s.realtimeIssueChecker.CheckOrderable(product.ID, sku.ID, item.Quantity)
+			if err != nil {
+				if errors.Is(err, cdkissuecontract.ErrNotOrderable) {
+					return nil, ErrProductNotAvailable
+				}
+				return nil, err
+			}
+			realtimeIssue = snapshot
+		}
 
 		manualSchemaSnapshot := jsonmap.JSON{}
 		manualSubmission := jsonmap.JSON{}
@@ -257,6 +271,10 @@ func (s *OrderService) buildOrderResult(input orderCreateParams) (*orderBuildRes
 			CreatedAt:                    now,
 			UpdatedAt:                    now,
 		}
+		if realtimeIssue != nil {
+			// 下单时固化套餐，之后改动商品绑定不影响已付款订单。
+			cdkissuedomain.ApplyItemSnapshot(orderItem.SKUSnapshotJSON, realtimeIssue.Plan, realtimeIssue.PaymentCountry)
+		}
 		orderItems = append(orderItems, orderItem)
 		plans = append(plans, childOrderPlan{
 			Product:           product,
@@ -267,6 +285,7 @@ func (s *OrderService) buildOrderResult(input orderCreateParams) (*orderBuildRes
 			PromotionDiscount: promotionDiscount,
 			WholesaleDiscount: wholesaleDiscount,
 			Currency:          productCurrency,
+			Realtime:          realtimeIssue != nil,
 		})
 	}
 	if currency == "" {

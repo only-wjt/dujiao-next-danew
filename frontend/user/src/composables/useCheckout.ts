@@ -1137,6 +1137,8 @@ export function useCheckout() {
       return Math.max(upstreamStock, 0)
     }
     if (item.fulfillmentType === 'auto') {
+      // -1 表示不限量（ZovoCard 实时发码）
+      if (Number(item.skuAutoStockAvailable) === -1) return null
       return normalizeStockNumber(item.skuAutoStockAvailable)
     }
     const total = normalizeManualStockTotal(item.skuManualStockTotal)

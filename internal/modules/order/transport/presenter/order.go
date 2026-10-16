@@ -101,6 +101,8 @@ type OrderDetail struct {
 	Items                    []OrderItemResp   `json:"items,omitempty"`
 	Fulfillment              *FulfillmentResp  `json:"fulfillment,omitempty"`
 	Children                 []OrderDetail     `json:"children,omitempty"`
+	// DeliveryState 仅实时发码订单在交付前返回：issuing（生成中）/ delayed（发放延迟）。
+	DeliveryState string `json:"delivery_state,omitempty"`
 }
 
 // OrderRefundResp 用户侧订单退款记录响应

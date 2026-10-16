@@ -58,6 +58,7 @@
         :order="order"
         variant="guest"
         :fulfillment-downloading="fulfillmentDownloading"
+        :refresh="refreshOrder"
         @download="handleDownloadFulfillment"
       />
     </template>
@@ -77,7 +78,7 @@ const { t } = useI18n()
 
 const {
   order, authError, auth, viewState, handleAuthSubmit, clearAuth,
-  fulfillmentDownloading, handleDownloadFulfillment,
+  fulfillmentDownloading, handleDownloadFulfillment, refreshOrder,
   statusLabel, statusVariant, formatDate, formatMoney, orderPaidAmount,
 } = useGuestOrderDetail()
 </script>

@@ -1,6 +1,7 @@
 package application
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"sort"
@@ -19,8 +20,12 @@ import (
 	"github.com/dujiao-next/internal/constants"
 	"github.com/dujiao-next/internal/logger"
 	cardsecretdomain "github.com/dujiao-next/internal/modules/cardsecret/domain"
+	cdkissuecontract "github.com/dujiao-next/internal/modules/cdkissue/contract"
 	"github.com/dujiao-next/internal/shared/jsonmap"
 )
+
+// realtimeIssueTimeout 覆盖一次交付中所有分片的卡台调用。
+const realtimeIssueTimeout = 3 * time.Minute
 
 // Service 编排人工交付与自动交付。
 type Service struct {
@@ -32,6 +37,12 @@ type Service struct {
 	defaultEmailConfig    config.EmailConfig
 	downstreamCallbackSvc DownstreamCallbackEnqueuer
 	userOAuthIdentityRepo externalidentitycontract.Store
+	realtimeIssuer        cdkissuecontract.RealtimeIssuer
+}
+
+// SetRealtimeIssuer 注入 ZovoCard 实时发码端口（为空时全部走库存卡密）。
+func (s *Service) SetRealtimeIssuer(issuer cdkissuecontract.RealtimeIssuer) {
+	s.realtimeIssuer = issuer
 }
 
 type BotNotifier interface {
@@ -236,6 +247,12 @@ func (s *Service) CreateAuto(orderID uint) (*fulfillmentdomain.Fulfillment, erro
 		}
 	}
 
+	// 实时发码在事务外调用卡台：外部 HTTP 不占用数据库锁，失败时订单保持已支付。
+	realtimeItems, realtimeCodes, err := s.issueRealtimeCodes(order)
+	if err != nil {
+		return nil, err
+	}
+
 	now := time.Now()
 	var fulfillment *fulfillmentdomain.Fulfillment
 	err = s.orderStore.WithinTransaction(func(tx ordercontract.Transaction) error {
@@ -256,9 +273,31 @@ func (s *Service) CreateAuto(orderID uint) (*fulfillmentdomain.Fulfillment, erro
 			reservedByKey[key] = append(reservedByKey[key], reserved)
 		}
 		var secrets []cardsecretdomain.Secret
+		var issuedSecrets []cardsecretdomain.Secret
 		for _, item := range order.Items {
 			if item.ProductID == 0 || item.Quantity <= 0 {
 				return ErrFulfillmentInvalid
+			}
+			if realtimeItems[item.ID] {
+				// 实时发码的订单项绝不回落到库存卡密。
+				codes := realtimeCodes[item.ID]
+				if len(codes) != item.Quantity {
+					return ErrCardSecretInsufficient
+				}
+				for _, code := range codes {
+					usedAt := now
+					issuedSecrets = append(issuedSecrets, cardsecretdomain.Secret{
+						ProductID: item.ProductID,
+						SKUID:     item.SKUID,
+						Secret:    code,
+						Status:    cardsecretdomain.StatusUsed,
+						OrderID:   &orderID,
+						UsedAt:    &usedAt,
+						CreatedAt: now,
+						UpdatedAt: now,
+					})
+				}
+				continue
 			}
 			key := orderdomain.ItemKey(item.ProductID, item.SKUID)
 			cachedReserved := reservedByKey[key]
@@ -293,12 +332,22 @@ func (s *Service) CreateAuto(orderID uint) (*fulfillmentdomain.Fulfillment, erro
 			secretLines = append(secretLines, secret.Secret)
 		}
 
-		affected, err := secretRepo.MarkUsed(ids, orderID, now)
-		if err != nil {
-			return err
+		if len(ids) > 0 {
+			affected, err := secretRepo.MarkUsed(ids, orderID, now)
+			if err != nil {
+				return err
+			}
+			if int(affected) != len(ids) {
+				return ErrCardSecretInsufficient
+			}
 		}
-		if int(affected) != len(ids) {
-			return ErrCardSecretInsufficient
+		if len(issuedSecrets) > 0 {
+			if err := secretRepo.CreateBatch(issuedSecrets); err != nil {
+				return err
+			}
+			for _, secret := range issuedSecrets {
+				secretLines = append(secretLines, secret.Secret)
+			}
 		}
 
 		payload := strings.Join(secretLines, "\n")
@@ -334,6 +383,11 @@ func (s *Service) CreateAuto(orderID uint) (*fulfillmentdomain.Fulfillment, erro
 			return nil, ErrFulfillmentNotAuto
 		default:
 			return nil, ErrFulfillmentCreateFailed
+		}
+	}
+	if len(realtimeItems) > 0 && s.realtimeIssuer != nil {
+		if err := s.realtimeIssuer.MarkDelivered(orderID); err != nil {
+			logger.Warnw("fulfillment_realtime_mark_delivered_failed", "order_id", orderID, "error", err)
 		}
 	}
 	if s.orderQueue != nil {
@@ -558,5 +612,46 @@ func toStringValue(raw interface{}) string {
 		return fmt.Sprintf("%v", value)
 	default:
 		return ""
+	}
+}
+
+// issueRealtimeCodes 为实时发码订单项向卡台取码。返回走实时发码的订单项与取到的码。
+func (s *Service) issueRealtimeCodes(order *orderdomain.Order) (map[uint]bool, cdkissuecontract.IssuedItemCodes, error) {
+	if s.realtimeIssuer == nil {
+		return nil, nil, nil
+	}
+	issueOrder := cdkissuecontract.IssueOrder{
+		OrderID:     order.ID,
+		RootOrderID: order.ID,
+		OrderNo:     order.OrderNo,
+	}
+	if order.ParentID != nil {
+		issueOrder.RootOrderID = *order.ParentID
+	}
+	for _, item := range order.Items {
+		issueOrder.Items = append(issueOrder.Items, cdkissuecontract.NewIssueOrderItem(
+			item.ID, item.ProductID, item.SKUID, item.Quantity, item.TitleJSON, item.SKUSnapshotJSON,
+		))
+	}
+	realtimeItems, err := s.realtimeIssuer.RealtimeItems(issueOrder)
+	if err != nil {
+		return nil, nil, ErrFulfillmentCreateFailed
+	}
+	if len(realtimeItems) == 0 {
+		return nil, nil, nil
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), realtimeIssueTimeout)
+	defer cancel()
+	codes, err := s.realtimeIssuer.EnsureIssued(ctx, issueOrder)
+	switch {
+	case err == nil:
+		return realtimeItems, codes, nil
+	case errors.Is(err, cdkissuecontract.ErrIssueHalted):
+		return nil, nil, ErrRealtimeIssueHalted
+	case errors.Is(err, cdkissuecontract.ErrIssueRetryable):
+		return nil, nil, ErrRealtimeIssueRetryable
+	default:
+		logger.Warnw("fulfillment_realtime_issue_failed", "order_id", order.ID, "error", err)
+		return nil, nil, ErrRealtimeIssueRetryable
 	}
 }

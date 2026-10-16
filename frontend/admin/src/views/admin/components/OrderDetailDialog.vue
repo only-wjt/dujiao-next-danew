@@ -5,6 +5,7 @@ import { Package } from 'lucide-vue-next'
 import { adminAPI } from '@/api/admin'
 import type { AdminOrder, AdminOrderItem, AdminFulfillment, AdminProcurementOrder, AdminPayment } from '@/api/types'
 import IdCell from '@/components/IdCell.vue'
+import OrderCdkIssuePanel from './OrderCdkIssuePanel.vue'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogScrollContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
@@ -1182,6 +1183,8 @@ watch(
               {{ selectedOrder.fulfillment.payload }}
             </div>
           </div>
+
+          <OrderCdkIssuePanel :order-id="selectedOrder.id" @changed="emit('refresh')" />
 
           <div v-if="procurementOrder" class="rounded-xl border border-indigo-200 bg-indigo-50/50 p-4">
             <h3 class="text-sm font-semibold text-indigo-800 mb-3">{{ t('orderDetail.procurementTitle') }}</h3>

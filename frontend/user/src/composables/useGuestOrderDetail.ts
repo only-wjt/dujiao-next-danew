@@ -6,6 +6,7 @@ import { debounceAsync } from '../utils/debounce'
 import { clearGuestOrderAuth, loadGuestOrderAuth, saveGuestOrderAuth } from '../utils/guestOrderAuth'
 import { resolveGuestOrderDetailViewState } from '../utils/guestOrderDetailState'
 import { useOrderDisplayHelpers } from './useOrderDisplayHelpers'
+import { useDeliveryPolling } from './useDeliveryPolling'
 
 /**
  * 游客订单详情逻辑（classic + vault 共用）。
@@ -82,6 +83,19 @@ export function useGuestOrderDetail() {
 
   const debouncedLoadOrder = debounceAsync(loadOrder, 300)
 
+  // 静默刷新：不切换骨架屏，用于实时发码订单的轮询。
+  const refreshOrder = async () => {
+    const orderNo = String(route.params.order_no || '').trim()
+    if (!orderNo || !hasAuth.value) return
+    const response = await guestOrderAPI.detail(orderNo, {
+      email: auth.value.email,
+      order_password: auth.value.order_password,
+    })
+    order.value = response.data.data
+  }
+
+  useDeliveryPolling(order, refreshOrder)
+
   const persistAuth = () => {
     saveGuestOrderAuth({
       email: auth.value.email,
@@ -128,6 +142,7 @@ export function useGuestOrderDetail() {
     showAuthForm,
     viewState,
     handleAuthSubmit,
+    refreshOrder,
     clearAuth,
     fulfillmentDownloading,
     handleDownloadFulfillment,

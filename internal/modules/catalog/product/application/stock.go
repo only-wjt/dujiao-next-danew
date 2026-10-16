@@ -81,6 +81,29 @@ func (s *Service) ApplyAutoStockCounts(products []productdomain.Product) error {
 			products[i].SKUs[j].AutoStockSold = used
 		}
 	}
+	return s.applyRealtimeStock(products, productIDs)
+}
+
+// applyRealtimeStock 覆盖 ZovoCard 实时发码商品的可用量：生效时 -1（不限量），停用时 0（售罄）。
+// 已售/占用数仍保留卡密表统计，便于后台查看。
+func (s *Service) applyRealtimeStock(products []productdomain.Product, productIDs []uint) error {
+	if s.realtime == nil || len(productIDs) == 0 {
+		return nil
+	}
+	stock, err := s.realtime.RealtimeStock(productIDs)
+	if err != nil {
+		return err
+	}
+	for i := range products {
+		available, ok := stock[products[i].ID]
+		if !ok {
+			continue
+		}
+		products[i].AutoStockAvailable = available
+		for j := range products[i].SKUs {
+			products[i].SKUs[j].AutoStockAvailable = available
+		}
+	}
 	return nil
 }
 

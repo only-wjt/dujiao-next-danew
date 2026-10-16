@@ -17,4 +17,8 @@ var (
 	ErrOrderStatusInvalid      = orderapp.ErrOrderStatusInvalid
 	ErrOrderUpdateFailed       = orderapp.ErrOrderUpdateFailed
 	ErrCardSecretInsufficient  = orderapp.ErrCardSecretInsufficient
+	// ErrRealtimeIssueRetryable 实时发码结果待定，任务应稍后重试（沿用同一幂等键）。
+	ErrRealtimeIssueRetryable = errors.New("realtime cdk issue retryable")
+	// ErrRealtimeIssueHalted 实时发码需要管理员处理，任务不应继续重试。
+	ErrRealtimeIssueHalted = errors.New("realtime cdk issue halted")
 )

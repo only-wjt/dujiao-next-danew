@@ -109,6 +109,18 @@ const routes = [
         meta: { permission: 'GET:/admin/settings' },
       },
       {
+        path: 'settings/cdk-issue',
+        name: 'cdk-issue-settings',
+        component: () => import('@/views/admin/CdkIssueSettings.vue'),
+        meta: { permission: 'GET:/admin/cdk-issue/config' },
+      },
+      {
+        path: 'cdk-issue/requests',
+        name: 'cdk-issue-requests',
+        component: () => import('@/views/admin/CdkIssueRequests.vue'),
+        meta: { permission: 'GET:/admin/cdk-issue/requests' },
+      },
+      {
         path: 'settings/folio',
         name: 'folio-settings',
         component: () => import('@/views/admin/FolioSettings.vue'),

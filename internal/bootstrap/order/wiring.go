@@ -21,7 +21,7 @@ type Handlers struct {
 
 // New assembles order transports and their composition-boundary adapters.
 func New(c *container.Container) Handlers {
-	return Handlers{
+	handlers := Handlers{
 		Admin: ordertransport.NewAdminHandler(
 			orderAdminQueryAdapter{orders: c.OrderService},
 			orderAdminUserAdapter{users: c.UserStore},
@@ -54,6 +54,12 @@ func New(c *container.Container) Handlers {
 			orderPaymentCreatorAdapter{payments: c.PaymentService},
 		),
 	}
+	if c.CDKIssueService != nil {
+		resolver := orderDeliveryStateAdapter{issues: c.CDKIssueService}
+		handlers.User.SetDeliveryStateResolver(resolver)
+		handlers.Guest.SetDeliveryStateResolver(resolver)
+	}
+	return handlers
 }
 
 // NewAdminRefundHandler exposes the focused refund composition for integration
