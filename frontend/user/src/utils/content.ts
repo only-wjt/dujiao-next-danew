@@ -45,15 +45,28 @@ export const RICH_TEXT_SANITIZE_CONFIG = {
 // DOMPurify 允许 style 属性，但 style 里能藏 expression() 之类的旧式执行向量，
 // 也会被用来做点击劫持式的覆盖布局。这里挂一个钩子把样式收敛到编辑器真正会产出的
 // 声明上（对齐、文字颜色、背景色），其余一律丢弃。钩子只需注册一次。
-let styleHookRegistered = false
+//
+// 同一个钩子顺带剥掉 data: URI。DOMPurify 默认对 img 等标签放行 data:，其中
+// data:image/svg+xml 可内嵌 SVG；而服务端 bluemonday 只放行 http/https/mailto/tel。
+// 无法用配置项关掉——DATA_URI_TAGS 只有 ADD_DATA_URI_TAGS 这个追加入口，没有移除
+// 入口——因此只能在钩子里处理。
+let sanitizeHookRegistered = false
 
 export const ensureRichTextStyleHook = (): void => {
-    if (styleHookRegistered) return
-    styleHookRegistered = true
+    if (sanitizeHookRegistered) return
+    sanitizeHookRegistered = true
 
     DOMPurify.addHook('afterSanitizeAttributes', (node) => {
         const element = node as Element
         if (typeof element.getAttribute !== 'function') return
+
+        // data: URI 一律剥除，与服务端策略对齐。
+        for (const attr of ['src', 'href', 'xlink:href']) {
+            const value = element.getAttribute(attr)
+            if (value && /^\s*data:/i.test(value)) {
+                element.removeAttribute(attr)
+            }
+        }
 
         const style = element.getAttribute('style')
         if (style === null) return
@@ -84,12 +97,20 @@ export const ensureRichTextStyleHook = (): void => {
 
 // 外链统一补 target/rel。DOMPurify 不会自动加这两项（与 Go 侧的 bluemonday 不同），
 // 不补则外链在当前标签页打开，配合 window.opener 可被反向控制（tabnabbing）。
-const FULLY_QUALIFIED_URL = /^https?:\/\//i
+//
+// 必须同时覆盖协议相对地址（//host/path）：它同样是跨域外链，但 /^https?:\/\// 匹配
+// 不到，只按绝对地址判断会漏掉它，攻击者预先写好的 rel="opener" 就被保留下来。
+const EXTERNAL_URL = /^(?:https?:)?\/\//i
 
 const hardenExternalLinks = (fragment: DocumentFragment): void => {
     fragment.querySelectorAll('a[href]').forEach((anchor) => {
         const href = anchor.getAttribute('href') || ''
-        if (!FULLY_QUALIFIED_URL.test(href)) return
+        if (!EXTERNAL_URL.test(href)) {
+            // 站内链接：去掉内容里自带的 target/rel，避免用 rel="opener" 之类削弱默认防护。
+            anchor.removeAttribute('target')
+            anchor.removeAttribute('rel')
+            return
+        }
 
         anchor.setAttribute('target', '_blank')
         anchor.setAttribute('rel', 'noopener noreferrer')
@@ -119,7 +140,12 @@ export function sanitizeRichTextHtml(html: string | null | undefined): string {
     const fragment = DOMPurify.sanitize(processHtmlForDisplay(raw), {
         ...RICH_TEXT_SANITIZE_CONFIG,
         RETURN_DOM_FRAGMENT: true,
-    }) as unknown as DocumentFragment
+    }) as unknown as DocumentFragment | null
+
+    // RETURN_DOM_FRAGMENT 下，若 DOMPurify 无法构造解析文档会返回 null（例如
+    // <frameset> 这类不能作为文档根的输入）。不判空就会在 querySelectorAll 上抛错，
+    // 而调用点在 computed 里，异常会直接冒泡到渲染、白屏整页。
+    if (!fragment) return ''
 
     hardenExternalLinks(fragment)
 
