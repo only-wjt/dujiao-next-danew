@@ -7,6 +7,7 @@ import (
 	"github.com/dujiao-next/internal/modules/content/contract"
 	"github.com/dujiao-next/internal/modules/content/domain"
 	"github.com/dujiao-next/internal/shared/jsonmap"
+	"github.com/dujiao-next/internal/shared/richtext"
 )
 
 // CreatePostInput 描述文章创建和更新所需字段。
@@ -121,7 +122,7 @@ func (s *PostService) Create(ctx context.Context, input CreatePostInput) (*domai
 		Type:        input.Type,
 		TitleJSON:   jsonmap.JSON(input.TitleJSON),
 		SummaryJSON: jsonmap.JSON(input.SummaryJSON),
-		ContentJSON: jsonmap.JSON(input.ContentJSON),
+		ContentJSON: jsonmap.JSON(richtext.SanitizeLocalized(input.ContentJSON)),
 		Thumbnail:   input.Thumbnail,
 		IsPublished: isPublished,
 		CategoryID:  categoryID,
@@ -175,7 +176,7 @@ func (s *PostService) Update(ctx context.Context, id string, input CreatePostInp
 	post.Type = input.Type
 	post.TitleJSON = jsonmap.JSON(input.TitleJSON)
 	post.SummaryJSON = jsonmap.JSON(input.SummaryJSON)
-	post.ContentJSON = jsonmap.JSON(input.ContentJSON)
+	post.ContentJSON = jsonmap.JSON(richtext.SanitizeLocalized(input.ContentJSON))
 	post.Thumbnail = input.Thumbnail
 	post.CategoryID = categoryID
 	if input.IsPublished != nil {
