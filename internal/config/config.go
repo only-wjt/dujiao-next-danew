@@ -268,8 +268,43 @@ func DefaultCORSAllowedHeaders() []string {
 
 // SecurityConfig 安全配置
 type SecurityConfig struct {
-	LoginRateLimit LoginRateLimitConfig `mapstructure:"login_rate_limit"`
-	PasswordPolicy PasswordPolicyConfig `mapstructure:"password_policy"`
+	LoginRateLimit  LoginRateLimitConfig  `mapstructure:"login_rate_limit"`
+	PasswordPolicy  PasswordPolicyConfig  `mapstructure:"password_policy"`
+	SecurityHeaders SecurityHeadersConfig `mapstructure:"security_headers"`
+}
+
+// SecurityHeadersConfig 安全响应头配置。
+//
+// 默认只启用零副作用的三项（nosniff / frame-ancestors 兜底 / Referrer-Policy），
+// 其余需要运维按自身前端形态显式开启——尤其是 CSP 与 HSTS：
+//   - CSP：站点设置里的「自定义脚本」功能会以内联 <script> 注入代码
+//     （见 frontend/user/src/utils/customScripts.ts），一刀切收紧会直接打断该功能；
+//     同时支付渠道回跳、Turnstile、Google/Telegram 登录均需各自放行来源。
+//   - HSTS：max-age 一旦下发，浏览器会长期拒绝该域名的明文访问，误配代价高。
+type SecurityHeadersConfig struct {
+	// Enabled 关闭后完全不写任何安全响应头。
+	Enabled bool `mapstructure:"enabled"`
+	// FrameOptions 取值 DENY / SAMEORIGIN / 空（不下发）。
+	FrameOptions string `mapstructure:"frame_options"`
+	// ContentTypeOptions 一般为 nosniff；留空则不下发。
+	ContentTypeOptions string `mapstructure:"content_type_options"`
+	// ReferrerPolicy 一般为 strict-origin-when-cross-origin。
+	ReferrerPolicy string `mapstructure:"referrer_policy"`
+	// PermissionsPolicy 留空则下发一份关闭摄像头/麦克风/定位等敏感能力的默认值。
+	PermissionsPolicy string `mapstructure:"permissions_policy"`
+	// ContentSecurityPolicy 默认空，即不下发 CSP；填写后按原样下发。
+	ContentSecurityPolicy string `mapstructure:"content_security_policy"`
+	// HSTSMaxAgeSeconds 为 0 时不下发 HSTS。
+	HSTSMaxAgeSeconds int `mapstructure:"hsts_max_age_seconds"`
+	// HSTSIncludeSubDomains 仅在 HSTSMaxAgeSeconds > 0 时生效。
+	HSTSIncludeSubDomains bool `mapstructure:"hsts_include_subdomains"`
+	// HSTSPreload 是否附 preload 指令，仅在 HSTS 生效时起作用。
+	HSTSPreload bool `mapstructure:"hsts_preload"`
+}
+
+// DefaultPermissionsPolicy 返回未配置时下发的默认权限策略，关闭该站点用不到的敏感能力。
+func DefaultPermissionsPolicy() string {
+	return "camera=(), microphone=(), geolocation=(), payment=(), usb=()"
 }
 
 // LoginRateLimitConfig 登录限流配置
@@ -405,6 +440,13 @@ func Load() *Config {
 	viper.SetDefault("security.password_policy.require_lower", true)
 	viper.SetDefault("security.password_policy.require_number", true)
 	viper.SetDefault("security.password_policy.require_special", false)
+	viper.SetDefault("security.security_headers.enabled", true)
+	viper.SetDefault("security.security_headers.frame_options", "SAMEORIGIN")
+	viper.SetDefault("security.security_headers.content_type_options", "nosniff")
+	viper.SetDefault("security.security_headers.referrer_policy", "strict-origin-when-cross-origin")
+	viper.SetDefault("security.security_headers.permissions_policy", "")
+	viper.SetDefault("security.security_headers.content_security_policy", "")
+	viper.SetDefault("security.security_headers.hsts_max_age_seconds", 0)
 	viper.SetDefault("email.enabled", false)
 	viper.SetDefault("email.host", "")
 	viper.SetDefault("email.port", 587)
