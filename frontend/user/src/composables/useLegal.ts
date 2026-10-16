@@ -1,6 +1,7 @@
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useAppStore } from '../stores/app'
+import { sanitizeRichTextHtml } from '../utils/content'
 import { usePageSeo } from './usePageSeo'
 
 /**
@@ -24,6 +25,8 @@ export function useLegal(type: () => 'terms' | 'privacy') {
     return type() === 'terms' ? t('footer.terms') : t('footer.privacy')
   })
 
+  // 条款与隐私政策由后台富文本编辑器维护，前端直接 v-html 渲染（classic 与 vault
+  // 模板共用本 composable），因此在这里统一净化，两个模板都无需各自处理。
   const content = computed(() => {
     const config = appStore.config
     if (!config?.legal) return ''
@@ -32,9 +35,9 @@ export function useLegal(type: () => 'terms' | 'privacy') {
     const lang = locale.value
 
     if (type() === 'terms' && legal.terms) {
-      return legal.terms[lang] || ''
+      return sanitizeRichTextHtml(legal.terms[lang] || '')
     } else if (type() === 'privacy' && legal.privacy) {
-      return legal.privacy[lang] || ''
+      return sanitizeRichTextHtml(legal.privacy[lang] || '')
     }
     return ''
   })

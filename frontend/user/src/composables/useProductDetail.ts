@@ -625,9 +625,14 @@ export function useProductDetail(options: { onLoaded?: () => void } = {}) {
         jsonLd.category = getLocalizedText(product.value.category.name)
       }
 
+      // JSON.stringify 不转义 '<'，因此商品标题或描述里只要出现 "</script>"
+      // 就能提前闭合本标签，在其后注入任意脚本。把 '<' 序列化成 JSON 的
+      // < 转义后，解析结果完全一致，但无法再突破 script 上下文。
+      const jsonLdText = JSON.stringify(jsonLd).replace(/</g, '\\u003c')
+
       return [{
         type: 'application/ld+json',
-        innerHTML: JSON.stringify(jsonLd),
+        innerHTML: jsonLdText,
       }]
     },
   })
