@@ -30,7 +30,10 @@ const sanitizedContent = computed(() => {
     ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'u', 's', 'code', 'pre', 'blockquote', 'ul', 'ol', 'li', 'a', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'span', 'div', 'img', 'hr', 'table', 'thead', 'tbody', 'tr', 'td', 'th', 'colgroup', 'col'],
     ALLOWED_ATTR: ['href', 'target', 'rel', 'src', 'alt', 'title', 'style', 'colspan', 'rowspan', 'width'],
     ALLOW_DATA_ATTR: false,
-    ALLOWED_URI_REGEXP: /^(?:https?:|mailto:|tel:|#|\/(?!\/))/i,
+    // 刻意不设 ALLOWED_URI_REGEXP。DOMPurify 会把该正则套用到每一个属性值上，
+    // 而不只是 URL 属性：colspan="2"、rowspan="1" 这类非 URL 取值无法匹配 URI
+    // 模式，会被整条丢弃——公告里的表格因此丢失跨列跨行。内置 URI 处理已能挡住
+    // javascript: 与 data:（大小写混淆同样有效），无需自定义。
   })
 })
 
