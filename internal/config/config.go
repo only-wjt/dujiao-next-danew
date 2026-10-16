@@ -430,7 +430,11 @@ func Load() *Config {
 	viper.SetDefault("cors.allowed_origins", DefaultCORSAllowedOrigins())
 	viper.SetDefault("cors.allowed_methods", DefaultCORSAllowedMethods())
 	viper.SetDefault("cors.allowed_headers", DefaultCORSAllowedHeaders())
-	viper.SetDefault("cors.allow_credentials", true)
+	// 默认白名单是 "*"，因此凭证开关必须为 false：二者组合下浏览器会拒绝所有
+	// 携带凭证的跨域请求，中间件也不再回显来源，等于把跨域能力整体关掉。
+	// 通配符的语义本就是「公开可读、不带凭证」，与 false 配对才是自洽的默认值。
+	// 需要携带凭证的跨域场景，应把 allowed_origins 改成具体来源后再开启本项。
+	viper.SetDefault("cors.allow_credentials", false)
 	viper.SetDefault("cors.max_age", 600)
 	viper.SetDefault("security.login_rate_limit.window_seconds", 300)
 	viper.SetDefault("security.login_rate_limit.max_attempts", 5)

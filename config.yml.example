@@ -137,7 +137,8 @@ cors:
     - X-Requested-With
     - X-CSRF-Token
   # 仅在 allowed_origins 为具体来源时才有效；为 true 时请勿保留 "*"。
-  allow_credentials: true
+  # 默认 false，与上面的 "*" 配对：通配符的语义是「公开可读、不带凭证」。
+  allow_credentials: false
   max_age: 600
 
 security:
