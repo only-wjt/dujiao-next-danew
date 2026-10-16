@@ -1,25 +1,35 @@
 import DOMPurify from 'dompurify'
 
 /**
- * 富文本正文的白名单，与前台 user 端的 RICH_TEXT_SANITIZE_CONFIG 保持一致。
+ * 后台富文本白名单。
  *
- * 覆盖后台 Tiptap 编辑器的全部产出：段落、标题、列表、引用、代码、链接、图片、
- * 表格（Table/TableRow/TableHeader/TableCell），以及 TextAlign 与 Color 产生的
- * 行内 style。
+ * 与前台的 RICH_TEXT_SANITIZE_CONFIG 相比，这里额外放行 Telegram 的 HTML 子集：
+ * 当前 admin 侧只有 Telegram 广播预览一处渲染富文本，而广播正文是 Telegram
+ * markup 而非网页 markup——编辑器提示词明确写的是「支持 Telegram HTML，如
+ * <b>加粗</b>」。若沿用网页白名单，预览里的 <b>/<i> 会被剥成纯文本，
+ * tg-spoiler 会失效，预览与真正发出去的内容不一致。
+ *
+ * 注意广播正文在服务端是按 Telegram markup 原样存储、原样转发给 Telegram API 的
+ * （ParseMode: HTML），不做网页净化——两套标记语言的白名单不能混用。
  *
  * 刻意不放行 script / iframe / object / embed / form / input 等可执行或可提交
  * 外部请求的标签，以及 id / name（防止 DOM clobbering）。
  */
 export const RICH_TEXT_SANITIZE_CONFIG = {
   ALLOWED_TAGS: [
-    'p', 'br', 'hr', 'strong', 'em', 'u', 's', 'del', 'code', 'pre', 'blockquote',
+    'p', 'br', 'hr', 'strong', 'b', 'em', 'i', 'u', 'ins', 's', 'strike', 'del',
+    'code', 'pre', 'blockquote',
     'ul', 'ol', 'li', 'a', 'img', 'span', 'div',
     'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
     'table', 'thead', 'tbody', 'tfoot', 'tr', 'th', 'td', 'colgroup', 'col',
+    // Telegram 专有标签
+    'tg-spoiler', 'tg-emoji',
   ],
   ALLOWED_ATTR: [
     'href', 'target', 'rel', 'src', 'alt', 'title', 'width', 'height',
     'style', 'colspan', 'rowspan', 'align',
+    // Telegram：<span class="tg-spoiler"> 与 <tg-emoji emoji-id="...">
+    'class', 'emoji-id',
   ],
   FORBID_ATTR: ['id', 'name', 'onerror', 'onload', 'onclick'],
   ALLOW_DATA_ATTR: false,
@@ -52,6 +62,13 @@ const ensureSanitizeHook = () => {
       if (value && /^\s*data:/i.test(value)) {
         element.removeAttribute(attr)
       }
+    }
+
+    // class 仅为 Telegram 的 <span class="tg-spoiler"> 而放行，其余取值一概剥除：
+    // 任意 class 会命中站内样式表，属于不必要的攻击面。
+    const className = element.getAttribute('class')
+    if (className !== null && className.trim() !== 'tg-spoiler') {
+      element.removeAttribute('class')
     }
 
     const style = element.getAttribute('style')
