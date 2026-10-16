@@ -29,3 +29,15 @@ test('order is issuing when the order or any child is issuing', () => {
   assert.equal(isOrderIssuing({ children: [{}, { delivery_state: 'issuing' }] }), true)
   assert.equal(isOrderIssuing({ children: [{ delivery_state: 'delayed' }] }), false)
 })
+
+test('payment region is read from the realtime issue snapshot only', async () => {
+  const { itemPaymentRegion, orderPaymentRegions, regionLabelKey } = await import('../src/utils/cdkRegion.ts')
+  const ph = { sku_snapshot: { cdk_issue: { plan: 'plus', payment_country: 'ph' } } }
+  const stock = { sku_snapshot: { sku_code: 'A' } }
+  assert.equal(itemPaymentRegion(ph), 'PH')
+  assert.equal(itemPaymentRegion(stock), '')
+  assert.deepEqual(orderPaymentRegions([ph, ph, stock]), ['PH'])
+  assert.deepEqual(orderPaymentRegions(null), [])
+  assert.equal(regionLabelKey('US'), 'orderDetail.regions.US')
+  assert.equal(regionLabelKey('XX'), null)
+})

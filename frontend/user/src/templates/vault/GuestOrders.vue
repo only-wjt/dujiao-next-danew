@@ -21,6 +21,7 @@
         </Button>
       </div>
       <p class="mt-3 text-[13px] text-muted-foreground">{{ t('guestOrders.tip') }}</p>
+      <GuestLookupCaptcha :required="captchaRequired" :attempt="captchaAttempt" class="mt-3.5" />
       <div v-if="error" class="mt-3.5 rounded-sm bg-destructive/10 px-3 py-2.5 text-[13px] font-semibold text-destructive">{{ error }}</div>
     </div>
 
@@ -72,12 +73,13 @@ import { ChevronLeft, ChevronRight, ClipboardList, Search, Eye, CreditCard } fro
 import { Badge } from '@/components/ui/badge'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import GuestLookupCaptcha from '../../components/order/GuestLookupCaptcha.vue'
 import { useGuestOrders } from '../../composables/useGuestOrders'
 
 const { t } = useI18n()
 
 const {
-  savedAuth, email, orderPassword, orderNo, loading, error, orders, pagination,
+  savedAuth, email, orderPassword, orderNo, loading, error, captchaRequired, captchaAttempt, orders, pagination,
   hasSavedAuth, clearSaved, handleSearch, emptyMessage, changePage,
   statusLabel, statusVariant, formatMoney, formatDiscountMoney, hasDiscountAmount, hasDiscount, formatDate,
 } = useGuestOrders()

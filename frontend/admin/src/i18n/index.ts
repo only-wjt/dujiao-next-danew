@@ -772,6 +772,7 @@ const messages = {
         order: {
           title: '实时发码记录',
           idempotencyKey: '幂等键',
+          paymentRegion: '付款地区',
           copied: '已复制',
           updatedAt: '更新 {time}',
           codesDisabled: '卡台已停用',
@@ -3300,6 +3301,7 @@ const messages = {
             resetSendCode: '找回密码发送邮件验证码',
             guestCreateOrder: '游客下单创建订单',
             giftCardRedeem: '礼品卡兑换',
+            guestOrderLookup: '游客查单（查错一次后要求验证）',
           },
           image: {
             title: '图片验证码参数',
@@ -5407,6 +5409,7 @@ const messages = {
         order: {
           title: '即時發碼紀錄',
           idempotencyKey: '冪等鍵',
+          paymentRegion: '付款地區',
           copied: '已複製',
           updatedAt: '更新 {time}',
           codesDisabled: '卡台已停用',
@@ -7935,6 +7938,7 @@ const messages = {
             resetSendCode: '找回密碼發送郵件驗證碼',
             guestCreateOrder: '遊客下單建立訂單',
             giftCardRedeem: '禮品卡兌換',
+            guestOrderLookup: '遊客查單（查錯一次後要求驗證）',
           },
           image: {
             title: '圖片驗證碼參數',
@@ -10042,6 +10046,7 @@ const messages = {
         order: {
           title: 'Realtime code requests',
           idempotencyKey: 'Idempotency key',
+          paymentRegion: 'Payment region',
           copied: 'Copied',
           updatedAt: 'Updated {time}',
           codesDisabled: 'Disabled on platform',
@@ -12570,6 +12575,7 @@ const messages = {
             resetSendCode: 'Reset password email code sending',
             guestCreateOrder: 'Guest checkout create order',
             giftCardRedeem: 'Gift card redeem',
+            guestOrderLookup: 'Guest order lookup (after one failed attempt)',
           },
           image: {
             title: 'Image captcha parameters',

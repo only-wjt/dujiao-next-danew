@@ -19,6 +19,8 @@ export function useGuestOrderDetail() {
   const loading = ref(true)
   const order = ref<any>(null)
   const authError = ref('')
+  const captchaRequired = ref(false)
+  const captchaAttempt = ref(0)
   const auth = ref({
     email: '',
     order_password: '',
@@ -73,9 +75,19 @@ export function useGuestOrderDetail() {
       })
       order.value = response.data.data
       authError.value = ''
-    } catch (error) {
+      captchaRequired.value = false
+    } catch (error: any) {
       order.value = null
-      authError.value = t('guestOrderDetail.authInvalid')
+      if (error?.statusCode === 428) {
+        captchaRequired.value = true
+        captchaAttempt.value++
+        authError.value = t('guestOrders.errors.captchaRequired')
+      } else if (error?.statusCode === 429) {
+        authError.value = error.message
+      } else {
+        if (captchaRequired.value) captchaAttempt.value++
+        authError.value = t('guestOrderDetail.authInvalid')
+      }
     } finally {
       loading.value = false
     }
@@ -139,6 +151,8 @@ export function useGuestOrderDetail() {
     order,
     authError,
     auth,
+    captchaRequired,
+    captchaAttempt,
     showAuthForm,
     viewState,
     handleAuthSubmit,

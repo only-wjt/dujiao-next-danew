@@ -328,6 +328,9 @@ export function useCheckout() {
   const checkoutMode = ref<'guest' | 'member'>('guest')
   const guestEmail = ref('')
   const guestPassword = ref('')
+  // 订单密码是游客查看卡密的唯一凭证，与后端保持一致至少 6 位。
+  const GUEST_PASSWORD_MIN_LENGTH = 6
+  const guestPasswordValid = computed(() => Array.from(guestPassword.value.trim()).length >= GUEST_PASSWORD_MIN_LENGTH)
   const guestCaptchaPayload = ref<CaptchaPayload>({})
   const guestTurnstileToken = ref('')
   const guestImageCaptchaRef = ref<InstanceType<typeof ImageCaptcha> | null>(null)
@@ -644,6 +647,7 @@ export function useCheckout() {
     if (userAuthStore.isAuthenticated) return true
     if (checkoutMode.value !== 'guest') return false
     if (!guestEmail.value.trim() || !guestPassword.value.trim() || !guestEmailValid.value) return false
+    if (!guestPasswordValid.value) return false
     if (!guestCaptchaEnabled.value) return true
     if (captchaProvider.value === 'image') {
       return Boolean(guestCaptchaPayload.value.captcha_id && guestCaptchaPayload.value.captcha_code)
@@ -675,6 +679,7 @@ export function useCheckout() {
     if (checkoutMode.value !== 'guest') return t('checkout.errors.loginOrGuest')
     if (!guestEmail.value.trim() || !guestPassword.value.trim()) return t('checkout.errors.missingGuest')
     if (!guestEmailValid.value) return t('error.email_invalid')
+    if (!guestPasswordValid.value) return t('checkout.errors.guestPasswordTooShort', { count: GUEST_PASSWORD_MIN_LENGTH })
     if (guestCaptchaEnabled.value) {
       if (captchaProvider.value === 'image' && (!guestCaptchaPayload.value.captcha_id || !guestCaptchaPayload.value.captcha_code)) {
         return t('auth.common.captchaRequired')
@@ -780,7 +785,7 @@ export function useCheckout() {
       couponRefreshing.value = false
       return
     }
-    if (isGuestCheckout.value && (!guestEmail.value.trim() || !guestPassword.value.trim() || !guestEmailValid.value)) {
+    if (isGuestCheckout.value && (!guestEmail.value.trim() || !guestPasswordValid.value || !guestEmailValid.value)) {
       preview.value = null
       orderPaymentChannels.value = []
       previewError.value = ''

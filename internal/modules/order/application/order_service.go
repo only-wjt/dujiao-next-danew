@@ -4,6 +4,7 @@ import (
 	"errors"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	affiliatedomain "github.com/dujiao-next/internal/modules/affiliate/domain"
 	productcontract "github.com/dujiao-next/internal/modules/catalog/product/contract"
@@ -266,6 +267,10 @@ func (s *OrderService) CreateGuestOrder(input CreateGuestOrderInput) (*orderdoma
 	password := strings.TrimSpace(input.OrderPassword)
 	if password == "" {
 		return nil, ErrGuestPasswordRequired
+	}
+	// 订单密码是游客查看卡密的唯一凭证，过短容易被枚举。
+	if utf8.RuneCountInString(password) < MinGuestOrderPasswordLength {
+		return nil, ErrGuestPasswordTooShort
 	}
 	locale := strings.TrimSpace(input.Locale)
 	return s.createOrder(orderCreateParams{

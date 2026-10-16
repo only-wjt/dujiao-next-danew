@@ -99,14 +99,21 @@ func (s *Service) Retry(requestID uint, mode cdkissuedomain.RetryMode) (*Request
 		request.KeyVersion++
 		request.IdempotencyKey = cdkissuedomain.BuildIdempotencyKey(request.OrderNo, request.OrderItemID, request.ChunkIndex, request.KeyVersion)
 	}
+	previousStatus := request.Status
 	request.Status = cdkissuedomain.RequestStatusPending
 	request.Attempts = 0
 	request.LastErrorCode = ""
 	request.LastErrorMsg = ""
 	request.LastHTTPStatus = 0
+	request.ClaimedUntil = nil
 	request.UpdatedAt = s.now()
-	if err := s.store.UpdateRequest(request); err != nil {
+	// 仅在状态未被并发改动时生效，避免重复点击或与自动重试交错。
+	saved, err := s.store.UpdateRequestIfStatus(request, previousStatus)
+	if err != nil {
 		return nil, err
+	}
+	if !saved {
+		return nil, cdkissuecontract.ErrRetryNotAllowed
 	}
 	if err := s.fulfillments.EnqueueAutoFulfill(request.OrderID); err != nil {
 		return nil, err
@@ -160,10 +167,7 @@ func (s *Service) DisableOrderCodes(ctx context.Context, orderID uint) (*cdkissu
 			}
 		}
 		if allDisabled {
-			stamp := now
-			request.CodesDisabledAt = &stamp
-			request.UpdatedAt = now
-			if err := s.store.UpdateRequest(request); err != nil {
+			if err := s.store.MarkCodesDisabled(request.ID, now); err != nil {
 				return result, err
 			}
 		}

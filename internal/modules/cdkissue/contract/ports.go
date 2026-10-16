@@ -31,12 +31,25 @@ type Store interface {
 	// CreateRequestIfAbsent 按 (order_id, order_item_id, chunk_index) 幂等建单，已存在时返回已有行。
 	CreateRequestIfAbsent(request *cdkissuedomain.IssueRequest) (*cdkissuedomain.IssueRequest, error)
 	GetRequest(id uint) (*cdkissuedomain.IssueRequest, error)
-	UpdateRequest(request *cdkissuedomain.IssueRequest) error
+	// ClaimRequest 原子地占用一个 pending 请求并累加尝试次数；已被占用或状态已变化时返回 false。
+	ClaimRequest(id uint, now, until time.Time) (bool, error)
+	// UpdateRequestIfStatus 仅在当前状态等于 expectedStatus 时保存整行，返回是否更新成功。
+	UpdateRequestIfStatus(request *cdkissuedomain.IssueRequest, expectedStatus string) (bool, error)
+	// MarkCodesDisabled 记录卡台卡密已停用。
+	MarkCodesDisabled(id uint, at time.Time) error
+	// ListAwaitingFulfillment 返回付款时间在区间内、已付款未交付的自动发货订单项及其快照。
+	ListAwaitingFulfillment(paidAfter, paidBefore time.Time, limit int) ([]AwaitingOrderItem, error)
 	ListRequestsByOrder(orderID uint) ([]cdkissuedomain.IssueRequest, error)
 	ListRequestsByRootOrder(rootOrderID uint) ([]cdkissuedomain.IssueRequest, error)
 	ListRequests(filter RequestFilter) ([]cdkissuedomain.IssueRequest, int64, error)
 	CountRequestsByStatus(filter RequestFilter) (map[string]int64, error)
 	MarkOrderDelivered(orderID uint, deliveredAt time.Time) error
+}
+
+// AwaitingOrderItem 是待补发扫描读取的订单项。
+type AwaitingOrderItem struct {
+	OrderID     uint
+	SKUSnapshot jsonmap.JSON
 }
 
 // Credentials 是调用卡台所需的凭据。

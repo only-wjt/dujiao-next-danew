@@ -20,11 +20,23 @@ function encodeGuestAuthorization(email: string, orderPassword: string): string 
     return `Guest ${token}`
 }
 
+// 游客查单失败后后端会要求人机验证；验证结果放在请求头，避免进入 URL。
+let guestCaptchaHeaders: Record<string, string> = {}
+
+export function setGuestLookupCaptcha(payload: { captcha_id?: string; captcha_code?: string; turnstile_token?: string } | null) {
+    guestCaptchaHeaders = {}
+    if (!payload) return
+    if (payload.turnstile_token) guestCaptchaHeaders['X-Captcha-Token'] = payload.turnstile_token
+    if (payload.captcha_id) guestCaptchaHeaders['X-Captcha-Id'] = payload.captcha_id
+    if (payload.captcha_code) guestCaptchaHeaders['X-Captcha-Code'] = payload.captcha_code
+}
+
 function splitGuestAuth(input: GuestAuthInput = {}) {
     const { email = '', order_password = '', ...payload } = input
     return {
         payload,
         headers: {
+            ...guestCaptchaHeaders,
             Authorization: encodeGuestAuthorization(String(email), String(order_password)),
         },
     }

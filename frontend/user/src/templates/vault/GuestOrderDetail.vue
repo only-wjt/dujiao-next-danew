@@ -16,6 +16,7 @@
         <Input v-model="auth.email" type="email" class="h-11" :placeholder="t('guestOrders.emailPlaceholder')" />
         <Input v-model="auth.order_password" type="password" class="h-11" :placeholder="t('guestOrders.passwordPlaceholder')" />
       </div>
+      <GuestLookupCaptcha :required="captchaRequired" :attempt="captchaAttempt" class="mt-3.5" />
       <div v-if="authError" class="mt-3.5 rounded-sm bg-destructive/10 px-3 py-2.5 text-[13px] font-semibold text-destructive">{{ authError }}</div>
       <div class="mt-3.5 flex flex-wrap gap-3">
         <Button type="button" size="sm" class="rounded-full" @click="handleAuthSubmit">{{ t('guestOrderDetail.authSubmit') }}</Button>
@@ -72,12 +73,13 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import VaultOrderBody from './components/VaultOrderBody.vue'
+import GuestLookupCaptcha from '../../components/order/GuestLookupCaptcha.vue'
 import { useGuestOrderDetail } from '../../composables/useGuestOrderDetail'
 
 const { t } = useI18n()
 
 const {
-  order, authError, auth, viewState, handleAuthSubmit, clearAuth,
+  order, authError, captchaRequired, captchaAttempt, auth, viewState, handleAuthSubmit, clearAuth,
   fulfillmentDownloading, handleDownloadFulfillment, refreshOrder,
   statusLabel, statusVariant, formatDate, formatMoney, orderPaidAmount,
 } = useGuestOrderDetail()

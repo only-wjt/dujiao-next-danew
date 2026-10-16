@@ -20,6 +20,7 @@ type CaptchaSceneSetting struct {
 	ResetSendCode    bool `json:"reset_send_code"`
 	GuestCreateOrder bool `json:"guest_create_order"`
 	GiftCardRedeem   bool `json:"gift_card_redeem"`
+	GuestOrderLookup bool `json:"guest_order_lookup"`
 }
 
 // CaptchaImageSetting 图片验证码配置。
@@ -56,6 +57,7 @@ type CaptchaScenePatch struct {
 	ResetSendCode    *bool `json:"reset_send_code"`
 	GuestCreateOrder *bool `json:"guest_create_order"`
 	GiftCardRedeem   *bool `json:"gift_card_redeem"`
+	GuestOrderLookup *bool `json:"guest_order_lookup"`
 }
 
 // CaptchaImagePatch 图片配置补丁。
@@ -95,6 +97,7 @@ func DefaultCaptchaSetting(cfg config.CaptchaConfig) CaptchaSetting {
 			ResetSendCode:    cfg.Scenes.ResetSendCode,
 			GuestCreateOrder: cfg.Scenes.GuestCreateOrder,
 			GiftCardRedeem:   cfg.Scenes.GiftCardRedeem,
+			GuestOrderLookup: cfg.Scenes.GuestOrderLookup,
 		},
 		Image: CaptchaImageSetting{
 			Length:        cfg.Image.Length,
@@ -210,6 +213,7 @@ func CaptchaSettingToConfig(setting CaptchaSetting) config.CaptchaConfig {
 			ResetSendCode:    normalized.Scenes.ResetSendCode,
 			GuestCreateOrder: normalized.Scenes.GuestCreateOrder,
 			GiftCardRedeem:   normalized.Scenes.GiftCardRedeem,
+			GuestOrderLookup: normalized.Scenes.GuestOrderLookup,
 		},
 		Image: config.CaptchaImageConfig{
 			Length:        normalized.Image.Length,
@@ -240,6 +244,7 @@ func EncodeCaptchaSetting(setting CaptchaSetting) jsonmap.JSON {
 			"reset_send_code":    normalized.Scenes.ResetSendCode,
 			"guest_create_order": normalized.Scenes.GuestCreateOrder,
 			"gift_card_redeem":   normalized.Scenes.GiftCardRedeem,
+			"guest_order_lookup": normalized.Scenes.GuestOrderLookup,
 		},
 		"image": map[string]interface{}{
 			"length":         normalized.Image.Length,
@@ -270,6 +275,7 @@ func MaskCaptchaSettingForAdmin(setting CaptchaSetting) jsonmap.JSON {
 			"reset_send_code":    normalized.Scenes.ResetSendCode,
 			"guest_create_order": normalized.Scenes.GuestCreateOrder,
 			"gift_card_redeem":   normalized.Scenes.GiftCardRedeem,
+			"guest_order_lookup": normalized.Scenes.GuestOrderLookup,
 		},
 		"image": map[string]interface{}{
 			"length":         normalized.Image.Length,
@@ -301,6 +307,7 @@ func PublicCaptchaSetting(setting CaptchaSetting) jsonmap.JSON {
 			"reset_send_code":    normalized.Scenes.ResetSendCode,
 			"guest_create_order": normalized.Scenes.GuestCreateOrder,
 			"gift_card_redeem":   normalized.Scenes.GiftCardRedeem,
+			"guest_order_lookup": normalized.Scenes.GuestOrderLookup,
 		},
 	}
 	if normalized.Provider == constants.CaptchaProviderTurnstile {
@@ -324,6 +331,8 @@ func (s CaptchaSetting) IsSceneEnabled(scene string) bool {
 		return s.Scenes.GuestCreateOrder
 	case constants.CaptchaSceneGiftCardRedeem:
 		return s.Scenes.GiftCardRedeem
+	case constants.CaptchaSceneGuestOrderLookup:
+		return s.Scenes.GuestOrderLookup
 	default:
 		return false
 	}
@@ -344,6 +353,7 @@ func DecodeCaptchaSetting(raw jsonmap.JSON, fallback CaptchaSetting) CaptchaSett
 		next.Scenes.ResetSendCode = settingsvalue.ReadBool(scenesMap, "reset_send_code", next.Scenes.ResetSendCode)
 		next.Scenes.GuestCreateOrder = settingsvalue.ReadBool(scenesMap, "guest_create_order", next.Scenes.GuestCreateOrder)
 		next.Scenes.GiftCardRedeem = settingsvalue.ReadBool(scenesMap, "gift_card_redeem", next.Scenes.GiftCardRedeem)
+		next.Scenes.GuestOrderLookup = settingsvalue.ReadBool(scenesMap, "guest_order_lookup", next.Scenes.GuestOrderLookup)
 	}
 
 	if imageMap := settingsvalue.ToStringAnyMap(raw["image"]); imageMap != nil {
@@ -387,6 +397,9 @@ func ApplyCaptchaSettingPatch(current CaptchaSetting, patch CaptchaSettingPatch)
 		}
 		if patch.Scenes.GiftCardRedeem != nil {
 			next.Scenes.GiftCardRedeem = *patch.Scenes.GiftCardRedeem
+		}
+		if patch.Scenes.GuestOrderLookup != nil {
+			next.Scenes.GuestOrderLookup = *patch.Scenes.GuestOrderLookup
 		}
 	}
 	if patch.Image != nil {
@@ -438,5 +451,5 @@ func ApplyCaptchaSettingPatch(current CaptchaSetting, patch CaptchaSettingPatch)
 }
 
 func (s CaptchaSceneSetting) anyEnabled() bool {
-	return s.Login || s.RegisterSendCode || s.ResetSendCode || s.GuestCreateOrder || s.GiftCardRedeem
+	return s.Login || s.RegisterSendCode || s.ResetSendCode || s.GuestCreateOrder || s.GiftCardRedeem || s.GuestOrderLookup
 }

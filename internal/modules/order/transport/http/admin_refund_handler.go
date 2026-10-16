@@ -106,6 +106,8 @@ type AdminRefundHandler struct {
 	emails  OrderStatusEmailEnqueuer
 	// FolioRefund 在退款成功后通知 Folio。未配置时为空。
 	FolioRefund func(order *orderdomain.Order, record *orderdomain.OrderRefundRecord)
+	// OnRefunded 在退款成功后调用（例如全额退款时停用实时发码卡密）。未配置时为空。
+	OnRefunded func(order *orderdomain.Order)
 }
 
 func NewAdminRefundHandler(
@@ -238,6 +240,7 @@ func (h *AdminRefundHandler) AdminRefundOrderToWallet(c *gin.Context) {
 	}
 	h.enqueueOrderRefundStatusEmail(order, refundRecord)
 	h.notifyFolioRefund(order, refundRecord)
+	h.notifyRefunded(order)
 
 	response.Success(c, gin.H{
 		"order":       order,
@@ -289,6 +292,7 @@ func (h *AdminRefundHandler) AdminManualRefundOrder(c *gin.Context) {
 	}
 	h.enqueueOrderRefundStatusEmail(order, refundRecord)
 	h.notifyFolioRefund(order, refundRecord)
+	h.notifyRefunded(order)
 
 	response.Success(c, gin.H{
 		"order":         order,
@@ -342,6 +346,13 @@ func (h *AdminRefundHandler) UpdateAdminOrderRefundPaymentFee(c *gin.Context) {
 }
 
 // enqueueOrderRefundStatusEmail 异步发送退款后的订单状态邮件（优先父订单维度）。
+func (h *AdminRefundHandler) notifyRefunded(order *orderdomain.Order) {
+	if h == nil || h.OnRefunded == nil || order == nil {
+		return
+	}
+	h.OnRefunded(order)
+}
+
 func (h *AdminRefundHandler) notifyFolioRefund(order *orderdomain.Order, refundRecord *orderdomain.OrderRefundRecord) {
 	if h == nil || h.FolioRefund == nil || order == nil || refundRecord == nil {
 		return

@@ -352,6 +352,7 @@ const (
 	CaptchaSceneResetSendCode    = "reset_send_code"
 	CaptchaSceneGuestCreateOrder = "guest_create_order"
 	CaptchaSceneGiftCardRedeem   = "gift_card_redeem"
+	CaptchaSceneGuestOrderLookup = "guest_order_lookup"
 )
 
 // 通知中心事件常量
@@ -395,6 +396,7 @@ const (
 	TaskProcurementSubmit           = "procurement:submit"
 	TaskProcurementPollStatus       = "procurement:poll_status"
 	TaskProcurementSyncAccepted     = "procurement:sync_accepted"
+	TaskCDKIssueSweep               = "cdk_issue:sweep"
 	TaskUpstreamSyncProducts        = "upstream:sync_products"
 	TaskUpstreamSyncStock           = "upstream:sync_stock"
 	TaskReconciliationRun           = "reconciliation:run"
@@ -579,6 +581,7 @@ const (
 	NotificationBizTypeProcurement     = "procurement"
 	NotificationBizTypeReconciliation  = "reconciliation"
 	NotificationBizTypeCDKIssue        = "cdk_issue"
+	NotificationBizTypeGuestLookup     = "guest_lookup"
 )
 
 // 对账差异类型常量

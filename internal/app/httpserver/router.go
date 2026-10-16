@@ -43,6 +43,7 @@ import (
 	dashboardtransport "github.com/dujiao-next/internal/modules/dashboard/transport/http"
 	giftcardtransport "github.com/dujiao-next/internal/modules/giftcard/transport/http"
 	memberleveltransport "github.com/dujiao-next/internal/modules/memberlevel/transport/http"
+	notificationcontract "github.com/dujiao-next/internal/modules/notification/contract"
 	notificationtransport "github.com/dujiao-next/internal/modules/notification/transport/http"
 	procurementtransport "github.com/dujiao-next/internal/modules/procurement/transport/http"
 	promotiontransport "github.com/dujiao-next/internal/modules/promotion/transport/http"
@@ -50,9 +51,11 @@ import (
 	sitemapbrand "github.com/dujiao-next/internal/modules/sitemap/infrastructure/settingsbrand"
 	sitemaptransport "github.com/dujiao-next/internal/modules/sitemap/transport/http"
 	telegramchanneltransport "github.com/dujiao-next/internal/modules/telegram/channelbot/transport/http"
+	"github.com/dujiao-next/internal/shared/jsonmap"
 	"github.com/dujiao-next/internal/web"
 
 	"github.com/gin-gonic/gin"
+	"github.com/redis/go-redis/v9"
 )
 
 // SetupRouter 初始化路由。
@@ -234,7 +237,7 @@ func SetupRouter(cfg *config.Config, c *container.Container) *gin.Engine {
 		}
 		return cfg.Folio.Secret
 	})
-	registerStorefrontRoutes(apiV1, cfg, c, publicContentHandler, publicCatalogHandler, publicCategoryHandler, userResellerHandler, userResellerProductSettingHandler, userResellerFinanceHandler, userResellerOrderHandler, userApiCredentialHandler, userAuditLogHandler, userGiftCardHandler, publicMemberLevelHandler, userProfileHandler, userEmailHandler, userPasswordHandler, userVerifyHandler, userTelegramOIDCHandler, userTelegramHandler, userGoogleHandler, userLoginHandler, user2FAHandler, publicConfigHandler, userCartHandler, userOrderHandler, guestOrderHandler, orderPreviewHandler, orderCreateHandler, paymentLatestHandler, paymentWriteHandler, userWalletHandler, redisClient, loginRule, guestReadRule, guestWriteRule)
+	registerStorefrontRoutes(apiV1, cfg, c, publicContentHandler, publicCatalogHandler, publicCategoryHandler, userResellerHandler, userResellerProductSettingHandler, userResellerFinanceHandler, userResellerOrderHandler, userApiCredentialHandler, userAuditLogHandler, userGiftCardHandler, publicMemberLevelHandler, userProfileHandler, userEmailHandler, userPasswordHandler, userVerifyHandler, userTelegramOIDCHandler, userTelegramHandler, userGoogleHandler, userLoginHandler, user2FAHandler, publicConfigHandler, userCartHandler, userOrderHandler, guestOrderHandler, orderPreviewHandler, orderCreateHandler, paymentLatestHandler, paymentWriteHandler, userWalletHandler, redisClient, loginRule, guestReadRule, guestWriteRule, newGuestLookupGuard(c, redisClient, redisPrefix).Middleware())
 	registerUpstreamRoutes(apiV1, c, upstreamHandler, redisClient, upstreamAPIRule)
 	registerChannelRoutes(apiV1, c, channelHandler, channelMemberLevelHandler, channelGiftCardHandler, channelAffiliateHandler, channelTelegramBotHandler, channelWalletHandler)
 	registerPaymentCallbackRoutes(apiV1, paymentCallbackHandler, paymentWebhookHandler)
@@ -360,4 +363,34 @@ func deriveAdminPermissionModule(object string) string {
 		return "authz"
 	}
 	return segments[1]
+}
+
+// newGuestLookupGuard 创建游客查单防爆破守卫，锁定时通过通知中心发出异常告警。
+func newGuestLookupGuard(c *container.Container, redisClient *redis.Client, redisPrefix string) *middleware.GuestLookupGuard {
+	var captcha middleware.GuestLookupCaptchaVerifier
+	if c != nil && c.CaptchaService != nil {
+		captcha = c.CaptchaService
+	}
+	var onLock middleware.GuestLookupLockNotifier
+	if c != nil && c.NotificationService != nil {
+		notifications := c.NotificationService
+		onLock = func(kind, subject string, failures int64) {
+			err := notifications.Enqueue(notificationcontract.EnqueueInput{
+				EventType: constants.NotificationEventExceptionAlert,
+				BizType:   constants.NotificationBizTypeGuestLookup,
+				Data: jsonmap.JSON{
+					"alert_type":      "游客查单疑似爆破",
+					"alert_type_key":  "guest_lookup_locked_" + kind,
+					"alert_level":     "warning",
+					"alert_value":     fmt.Sprintf("%d", failures),
+					"alert_threshold": fmt.Sprintf("%d", failures),
+					"message":         fmt.Sprintf("游客查单失败次数过多，已临时锁定（维度：%s，对象：%s）。", kind, subject),
+				},
+			})
+			if err != nil {
+				logger.Warnw("guest_lookup_lock_alert_failed", "kind", kind, "error", err)
+			}
+		}
+	}
+	return middleware.NewGuestLookupGuard(redisClient, redisPrefix, captcha, onLock)
 }

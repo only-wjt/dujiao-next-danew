@@ -69,3 +69,21 @@ func (n *Notifier) NotifyLowBalance(spendable, threshold decimal.Decimal) error 
 		},
 	})
 }
+
+// NotifyRefundDisableFailed 订单已退款但卡台卡密停用失败，可能已被兑换造成损失。
+func (n *Notifier) NotifyRefundDisableFailed(orderNo string, failed int, message string) error {
+	return n.enqueuer.Enqueue(notificationcontract.EnqueueInput{
+		EventType: constants.NotificationEventExceptionAlert,
+		BizType:   constants.NotificationBizTypeCDKIssue,
+		BizID:     0,
+		Data: jsonmap.JSON{
+			"alert_type":      "ZovoCard 退款停码",
+			"alert_type_key":  "cdk_issue_refund_disable_failed",
+			"alert_level":     "critical",
+			"alert_value":     fmt.Sprintf("%d", failed),
+			"alert_threshold": "0",
+			"message":         fmt.Sprintf("订单 %s 已全额退款，但卡台卡密停用失败：%s", orderNo, message),
+			"order_no":        orderNo,
+		},
+	})
+}

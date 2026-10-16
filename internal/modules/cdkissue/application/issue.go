@@ -4,11 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"strings"
 
 	"github.com/dujiao-next/internal/crypto"
-	"github.com/dujiao-next/internal/logger"
 	cdkissuecontract "github.com/dujiao-next/internal/modules/cdkissue/contract"
 	cdkissuedomain "github.com/dujiao-next/internal/modules/cdkissue/domain"
 	"github.com/dujiao-next/internal/shared/jsonslice"
@@ -170,140 +168,6 @@ const (
 	outcomeRetry
 	outcomeHalted
 )
-
-// advanceRequest 推进单个请求：已成功则解出码；待处理则调卡台；失败/不明则停下等管理员。
-func (s *Service) advanceRequest(
-	ctx context.Context,
-	request *cdkissuedomain.IssueRequest,
-	resolveCredentials func() (*cdkissuecontract.Credentials, error),
-) ([]string, requestOutcome) {
-	switch request.Status {
-	case cdkissuedomain.RequestStatusSucceeded:
-		codes, err := s.decryptCodes(request.CodesEncrypted)
-		if err != nil || len(codes) != request.Count {
-			logger.Errorw("cdk_issue_stored_codes_invalid", "request_id", request.ID, "order_id", request.OrderID, "error", err)
-			return nil, outcomeHalted
-		}
-		return codes, outcomeDone
-	case cdkissuedomain.RequestStatusPending:
-		return s.callIssue(ctx, request, resolveCredentials)
-	default:
-		return nil, outcomeHalted
-	}
-}
-
-func (s *Service) callIssue(
-	ctx context.Context,
-	request *cdkissuedomain.IssueRequest,
-	resolveCredentials func() (*cdkissuecontract.Credentials, error),
-) ([]string, requestOutcome) {
-	credentials, err := resolveCredentials()
-	if err != nil {
-		// 没有发出请求，不可能扣费，可放心换新键重试。
-		s.finishRequest(request, cdkissuedomain.RequestStatusFailed, 0, errorCodeNotConfigured, "ZovoCard 未配置或密钥无法解密", true)
-		return nil, outcomeHalted
-	}
-
-	// 先落库尝试次数，进程中途退出也不会无限重试。
-	request.Attempts++
-	request.UpdatedAt = s.now()
-	if err := s.store.UpdateRequest(request); err != nil {
-		logger.Warnw("cdk_issue_attempt_save_failed", "request_id", request.ID, "error", err)
-		return nil, outcomeRetry
-	}
-
-	result, err := s.gateway.Issue(ctx, *credentials, cdkissuecontract.IssueCommand{
-		Plan:           request.Plan,
-		Count:          request.Count,
-		PaymentCountry: request.PaymentCountry,
-		IdempotencyKey: request.IdempotencyKey,
-	})
-	if err != nil {
-		var gatewayErr *cdkissuecontract.GatewayError
-		if !errors.As(err, &gatewayErr) {
-			gatewayErr = &cdkissuecontract.GatewayError{ErrorCode: errorCodeNetwork, Message: err.Error(), Transient: true}
-		}
-		if gatewayErr.Transient {
-			if request.Attempts >= cdkissuedomain.MaxAutoAttempts {
-				s.finishRequest(request, cdkissuedomain.RequestStatusUnknown, gatewayErr.HTTPStatus, gatewayErr.ErrorCode, gatewayErr.Message, true)
-				return nil, outcomeHalted
-			}
-			s.finishRequest(request, cdkissuedomain.RequestStatusPending, gatewayErr.HTTPStatus, gatewayErr.ErrorCode, gatewayErr.Message, false)
-			return nil, outcomeRetry
-		}
-		s.finishRequest(request, cdkissuedomain.RequestStatusFailed, gatewayErr.HTTPStatus, gatewayErr.ErrorCode, gatewayErr.Message, true)
-		return nil, outcomeHalted
-	}
-
-	if len(result.Codes) != request.Count {
-		// 数量不符时不交付，保留原键：卡台重放应返回同一批码，交给管理员核实。
-		s.finishRequest(request, cdkissuedomain.RequestStatusUnknown, 200, errorCodeCountMismatch,
-			fmt.Sprintf("卡台返回 %d 张码，期望 %d 张", len(result.Codes), request.Count), true)
-		return nil, outcomeHalted
-	}
-
-	codes := make([]string, 0, len(result.Codes))
-	ids := make(jsonslice.Uints, 0, len(result.Codes))
-	var fee int64
-	for _, item := range result.Codes {
-		codes = append(codes, item.Code)
-		if item.ID > 0 {
-			ids = append(ids, item.ID)
-		}
-		fee += item.FeeAmountMinor
-	}
-	encrypted, err := s.encryptCodes(codes)
-	if err != nil {
-		// 码已到手但无法安全落库；保持 pending，下次用同一幂等键重放取回。
-		logger.Errorw("cdk_issue_encrypt_codes_failed", "request_id", request.ID, "error", err)
-		return nil, outcomeRetry
-	}
-	request.Status = cdkissuedomain.RequestStatusSucceeded
-	request.CodesEncrypted = encrypted
-	request.ProviderCDKIDs = ids
-	request.IssuedCount = len(codes)
-	request.FeeAmountMinor = fee
-	request.LastHTTPStatus = 200
-	request.LastErrorCode = ""
-	request.LastErrorMsg = ""
-	request.UpdatedAt = s.now()
-	if err := s.store.UpdateRequest(request); err != nil {
-		logger.Errorw("cdk_issue_save_codes_failed", "request_id", request.ID, "error", err)
-		return nil, outcomeRetry
-	}
-	logger.Infow("cdk_issue_succeeded",
-		"request_id", request.ID,
-		"order_no", request.OrderNo,
-		"plan", request.Plan,
-		"count", request.Count,
-		"replayed", result.Replayed,
-	)
-	return codes, outcomeDone
-}
-
-func (s *Service) finishRequest(request *cdkissuedomain.IssueRequest, status string, httpStatus int, errorCode, message string, alert bool) {
-	request.Status = status
-	request.LastHTTPStatus = httpStatus
-	request.LastErrorCode = strings.TrimSpace(errorCode)
-	request.LastErrorMsg = truncateRunes(strings.TrimSpace(message), 480)
-	request.UpdatedAt = s.now()
-	if err := s.store.UpdateRequest(request); err != nil {
-		logger.Errorw("cdk_issue_save_status_failed", "request_id", request.ID, "status", status, "error", err)
-	}
-	logger.Warnw("cdk_issue_not_succeeded",
-		"request_id", request.ID,
-		"order_no", request.OrderNo,
-		"status", status,
-		"attempts", request.Attempts,
-		"http_status", httpStatus,
-		"error_code", errorCode,
-	)
-	if alert && s.alerts != nil {
-		if err := s.alerts.NotifyIssueAlert(request, message); err != nil {
-			logger.Warnw("cdk_issue_alert_failed", "request_id", request.ID, "error", err)
-		}
-	}
-}
 
 // MarkDelivered 交付事务成功后清除暂存的密文。
 func (s *Service) MarkDelivered(orderID uint) error {

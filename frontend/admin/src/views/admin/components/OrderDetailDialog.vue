@@ -76,6 +76,13 @@ const statusLabel = (status: string) => orderStatusLabel(t, status)
 const statusClass = (status: string) => orderStatusClass(status)
 const fulfillmentTypeLabel = (type: string) => fulfillmentTypeLabelMap(t, type, 'admin.orders')
 const fulfillmentStatusLabel = (status: string) => fulfillmentStatusLabelMap(t, status, 'admin.orders')
+// 实时发码订单项快照中的付款地区，例如「PH 菲律宾」。
+const paymentRegionText = (items?: AdminOrderItem[] | null) => {
+  const codes = Array.from(new Set((items || [])
+    .map((item) => String((item as any)?.sku_snapshot?.cdk_issue?.payment_country || '').toUpperCase())
+    .filter(Boolean)))
+  return codes.map((code) => `${code} ${t(`admin.cdkIssue.countries.${code}`, code)}`).join(' / ')
+}
 const paymentStatusLabel = (status: string) => paymentStatusLabelMap(t, status)
 const paymentStatusClass = (status: string) => paymentStatusClassMap(status)
 
@@ -1134,6 +1141,7 @@ watch(
                   <h4 class="text-xs font-semibold text-muted-foreground mb-2">{{ t('orderDetail.childFulfillmentTitle') }}</h4>
                   <div v-if="child.fulfillment">
                     <div class="text-xs text-muted-foreground">{{ t('admin.orders.detailFulfillmentType') }}：{{ fulfillmentTypeLabel(child.fulfillment.type) }}</div>
+                    <div v-if="paymentRegionText(child.items)" class="text-xs text-muted-foreground">{{ t('admin.cdkIssue.order.paymentRegion') }}：<span class="rounded-full border border-violet-200 bg-violet-50 px-2 py-0.5 text-[11px] font-semibold text-violet-700">{{ paymentRegionText(child.items) }}</span></div>
                     <div class="text-xs text-muted-foreground">{{ t('admin.orders.detailFulfillmentStatus') }}：{{ fulfillmentStatusLabel(child.fulfillment.status) }}</div>
                     <div v-if="isFulfillmentTruncated(child.fulfillment)" class="mt-3">
                       <div class="flex items-center justify-between mb-2">
@@ -1168,6 +1176,7 @@ watch(
               </Button>
             </div>
             <div class="text-sm text-muted-foreground">{{ t('admin.orders.detailFulfillmentType') }}：{{ fulfillmentTypeLabel(selectedOrder.fulfillment.type) }}</div>
+            <div v-if="paymentRegionText(selectedOrder.items)" class="text-sm text-muted-foreground">{{ t('admin.cdkIssue.order.paymentRegion') }}：<span class="rounded-full border border-violet-200 bg-violet-50 px-2 py-0.5 text-xs font-semibold text-violet-700">{{ paymentRegionText(selectedOrder.items) }}</span></div>
             <div class="text-sm text-muted-foreground">{{ t('admin.orders.detailFulfillmentStatus') }}：{{ fulfillmentStatusLabel(selectedOrder.fulfillment.status) }}</div>
             <div v-if="isFulfillmentTruncated(selectedOrder.fulfillment)" class="mt-3">
               <div class="text-xs text-muted-foreground mb-2">{{ t('admin.orders.fulfillmentTotalLines', { count: selectedOrder.fulfillment.payload_line_count }) }}</div>

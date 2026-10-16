@@ -9,6 +9,7 @@ import (
 
 	paymentapp "github.com/dujiao-next/internal/modules/payment/application"
 
+	cdkissuedomain "github.com/dujiao-next/internal/modules/cdkissue/domain"
 	fulfillmentapp "github.com/dujiao-next/internal/modules/fulfillment/application"
 	fulfillmentdomain "github.com/dujiao-next/internal/modules/fulfillment/domain"
 	orderapp "github.com/dujiao-next/internal/modules/order/application"
@@ -16,6 +17,7 @@ import (
 
 	"github.com/dujiao-next/internal/constants"
 	"github.com/dujiao-next/internal/htmltext"
+	"github.com/dujiao-next/internal/i18n"
 	"github.com/dujiao-next/internal/logger"
 	notificationcontract "github.com/dujiao-next/internal/modules/notification/contract"
 	settingsmessaging "github.com/dujiao-next/internal/modules/settings/schema/messaging"
@@ -127,7 +129,7 @@ func (c *Consumer) handleOrderStatusEmail(ctx context.Context, task *asynq.Task)
 			tmplSetting = &setting
 		}
 	}
-	payloadText := buildOrderFulfillmentEmailPayload(order)
+	payloadText := buildOrderFulfillmentEmailPayloadForLocale(order, locale)
 	emailBrand, brandErr := c.resolveOrderEmailBrand(ctx, order)
 	if brandErr != nil {
 		logger.Warnw("worker_order_status_email_load_site_brand_failed", "order_id", order.ID, "error", brandErr)
@@ -409,15 +411,20 @@ func localizedInstructionsText(raw jsonmap.JSON, locale string) string {
 	return ""
 }
 
-// buildOrderFulfillmentEmailPayload 组装订单状态邮件中的交付内容文本。
+// buildOrderFulfillmentEmailPayload 组装订单状态邮件中的交付内容文本（不含地区标识）。
 func buildOrderFulfillmentEmailPayload(order *orderdomain.Order) string {
+	return buildOrderFulfillmentEmailPayloadForLocale(order, "")
+}
+
+// buildOrderFulfillmentEmailPayloadForLocale 组装交付内容；locale 非空时为实时发码卡密附加付款地区标识。
+func buildOrderFulfillmentEmailPayloadForLocale(order *orderdomain.Order, locale string) string {
 	if order == nil {
 		return ""
 	}
 	if order.Fulfillment != nil {
 		payload := strings.TrimSpace(order.Fulfillment.Payload)
 		if payload != "" {
-			return payload
+			return withRegionLine(order, locale, payload)
 		}
 	}
 	if len(order.Children) == 0 {
@@ -432,7 +439,32 @@ func buildOrderFulfillmentEmailPayload(order *orderdomain.Order) string {
 		if content == "" {
 			continue
 		}
-		parts = append(parts, fmt.Sprintf("[%s]\n%s", strings.TrimSpace(child.OrderNo), content))
+		parts = append(parts, fmt.Sprintf("[%s]\n%s", strings.TrimSpace(child.OrderNo), withRegionLine(&child, locale, content)))
 	}
 	return strings.Join(parts, "\n\n")
+}
+
+// withRegionLine 在实时发码卡密前加一行付款地区，例如「付款地区：PH 菲律宾」。
+func withRegionLine(order *orderdomain.Order, locale, content string) string {
+	if locale == "" || order == nil {
+		return content
+	}
+	codes := make([]string, 0, 1)
+	seen := make(map[string]bool)
+	for _, item := range order.Items {
+		_, country, ok := cdkissuedomain.ReadItemSnapshot(item.SKUSnapshotJSON)
+		if !ok || country == "" || seen[country] {
+			continue
+		}
+		seen[country] = true
+		label := country
+		if name := i18n.T(locale, "region."+country); name != "region."+country {
+			label = country + " " + name
+		}
+		codes = append(codes, label)
+	}
+	if len(codes) == 0 {
+		return content
+	}
+	return i18n.Sprintf(locale, "email.order_status.region_line", strings.Join(codes, " / ")) + "\n" + content
 }

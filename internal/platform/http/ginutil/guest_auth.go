@@ -39,3 +39,33 @@ func GetGuestCredentials(c *gin.Context) (string, string, bool) {
 	}
 	return email, password, true
 }
+
+const guestLookupResultKey = "dj_guest_lookup_result"
+
+// GuestLookupResult 是一次游客凭证校验的结果，供防爆破中间件计数。
+type GuestLookupResult struct {
+	Success bool
+	OrderNo string
+}
+
+// MarkGuestLookup 记录本次请求的游客凭证是否校验通过（邮箱、订单密码、订单号匹配）。
+// 只有凭证错误才应记为失败；参数缺失、系统错误等不计入。
+func MarkGuestLookup(c *gin.Context, success bool, orderNo string) {
+	if c == nil {
+		return
+	}
+	c.Set(guestLookupResultKey, GuestLookupResult{Success: success, OrderNo: strings.TrimSpace(orderNo)})
+}
+
+// GuestLookupResultFrom 读取 MarkGuestLookup 写入的结果。
+func GuestLookupResultFrom(c *gin.Context) (GuestLookupResult, bool) {
+	if c == nil {
+		return GuestLookupResult{}, false
+	}
+	value, ok := c.Get(guestLookupResultKey)
+	if !ok {
+		return GuestLookupResult{}, false
+	}
+	result, ok := value.(GuestLookupResult)
+	return result, ok
+}

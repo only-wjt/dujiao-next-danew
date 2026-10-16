@@ -105,5 +105,8 @@ func NewAdminRefundHandler(c *container.Container) *ordertransport.AdminRefundHa
 			})
 		}
 	}
+	if c != nil && c.CDKIssueService != nil {
+		handler.OnRefunded = newCDKRefundHook(c.CDKIssueService)
+	}
 	return handler
 }

@@ -19,6 +19,7 @@
           <Input v-model="auth.email" type="email" class="h-11" :placeholder="t('guestOrders.emailPlaceholder')" />
           <Input v-model="auth.order_password" type="password" class="h-11" :placeholder="t('guestOrders.passwordPlaceholder')" />
         </div>
+        <GuestLookupCaptcha :required="captchaRequired" :attempt="captchaAttempt" class="mt-4" />
         <Alert v-if="authError" variant="destructive" class="mt-4">
           <AlertDescription>{{ authError }}</AlertDescription>
         </Alert>
@@ -403,12 +404,13 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import DeliveryReadyBanner from '../components/order/DeliveryReadyBanner.vue'
 import VaultOrderFulfillment from '../templates/vault/components/VaultOrderFulfillment.vue'
 import PendingDeliveryCard from '../components/order/PendingDeliveryCard.vue'
+import GuestLookupCaptcha from '../components/order/GuestLookupCaptcha.vue'
 import { useGuestOrderDetail } from '../composables/useGuestOrderDetail'
 
 const { t } = useI18n()
 
 const {
-  order, authError, auth, viewState, handleAuthSubmit, clearAuth,
+  order, authError, captchaRequired, captchaAttempt, auth, viewState, handleAuthSubmit, clearAuth,
   fulfillmentDownloading, handleDownloadFulfillment,
   statusLabel, statusVariant, fulfillmentTypeLabelText,
   formatDate, getLocalizedText, formatMoney, formatDiscountMoney, hasDiscountAmount, hasAmount,

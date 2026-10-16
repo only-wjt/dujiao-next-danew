@@ -29,6 +29,9 @@ const MaxAutoAttempts = 8
 // StalePendingAfter 之后的 pending 视为卡住，允许管理员原键重试。
 const StalePendingAfter = 10 * time.Minute
 
+// ClaimLease 是一次卡台调用的租约时长，需覆盖发码接口超时。
+const ClaimLease = 2 * time.Minute
+
 // IssueRequest 记录一次向卡台的发码请求（一个订单项的一个分片）。
 //
 // 码在交付前以密文暂存在 CodesEncrypted，交付事务写入卡密表后清空，
@@ -60,8 +63,10 @@ type IssueRequest struct {
 	CodesEncrypted  string          `gorm:"type:text" json:"-"`
 	DeliveredAt     *time.Time      `json:"delivered_at"`
 	CodesDisabledAt *time.Time      `json:"codes_disabled_at"`
-	CreatedAt       time.Time       `gorm:"index" json:"created_at"`
-	UpdatedAt       time.Time       `gorm:"index" json:"updated_at"`
+	// ClaimedUntil 是当前调用卡台的租约到期时间，防止同一请求被两个任务同时发起。
+	ClaimedUntil *time.Time `json:"-"`
+	CreatedAt    time.Time  `gorm:"index" json:"created_at"`
+	UpdatedAt    time.Time  `gorm:"index" json:"updated_at"`
 }
 
 // TableName 指定表名。

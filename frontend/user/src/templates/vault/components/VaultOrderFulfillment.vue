@@ -49,7 +49,14 @@
           :key="index"
           class="flex items-center justify-between gap-3 rounded-md border bg-background px-3 py-2.5"
         >
-          <span class="min-w-0 select-all whitespace-pre-wrap break-all font-mono text-[15px] font-semibold leading-relaxed text-foreground">{{ line }}</span>
+          <div class="flex min-w-0 items-center gap-2">
+            <span
+              v-if="regionText"
+              class="inline-flex flex-none items-center rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-[11px] font-bold text-primary"
+              :title="t('orderDetail.paymentRegion')"
+            >{{ regionText }}</span>
+            <span class="min-w-0 select-all whitespace-pre-wrap break-all font-mono text-[15px] font-semibold leading-relaxed text-foreground">{{ line }}</span>
+          </div>
           <div v-if="delivered" class="flex flex-none items-center gap-1">
             <Button
               v-if="redeemHref(line)"
@@ -100,6 +107,7 @@ import { useI18n } from 'vue-i18n'
 import { Copy, Check, Download, ExternalLink, Info, KeyRound } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import { useOrderDisplayHelpers } from '../../../composables/useOrderDisplayHelpers'
+import { orderPaymentRegions, regionLabelKey } from '../../../utils/cdkRegion'
 
 const props = defineProps<{
   title?: string
@@ -130,6 +138,15 @@ const displayLines = computed(() => {
     .split('\n')
     .map((line) => line.trim())
     .filter(Boolean)
+})
+
+// 实时发码卡密显示付款地区（一个交付只对应一个地区时才显示，避免误标）。
+const regionText = computed(() => {
+  const regions = orderPaymentRegions(props.items)
+  if (regions.length !== 1) return ''
+  const code = regions[0]!
+  const key = regionLabelKey(code)
+  return key ? `${code} ${t(key)}` : code
 })
 
 const redeemTemplate = computed(() => {

@@ -194,6 +194,7 @@ type CaptchaSceneConfig struct {
 	ResetSendCode    bool `mapstructure:"reset_send_code"`
 	GuestCreateOrder bool `mapstructure:"guest_create_order"`
 	GiftCardRedeem   bool `mapstructure:"gift_card_redeem"`
+	GuestOrderLookup bool `mapstructure:"guest_order_lookup"`
 }
 
 // CaptchaImageConfig 图片验证码配置
@@ -244,6 +245,9 @@ var (
 		"Cache-Control",
 		"X-Requested-With",
 		"X-CSRF-Token",
+		"X-Captcha-Token",
+		"X-Captcha-Id",
+		"X-Captcha-Code",
 	}
 )
 
@@ -422,6 +426,7 @@ func Load() *Config {
 	viper.SetDefault("captcha.scenes.reset_send_code", false)
 	viper.SetDefault("captcha.scenes.guest_create_order", false)
 	viper.SetDefault("captcha.scenes.gift_card_redeem", false)
+	viper.SetDefault("captcha.scenes.guest_order_lookup", false)
 	viper.SetDefault("captcha.image.length", 5)
 	viper.SetDefault("captcha.image.width", 240)
 	viper.SetDefault("captcha.image.height", 80)

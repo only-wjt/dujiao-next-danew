@@ -105,6 +105,7 @@ func (q *fakeQueue) EnqueueAutoFulfill(orderID uint) error {
 type fakeAlerts struct {
 	issue      []string
 	lowBalance int
+	refund     []string
 }
 
 func (a *fakeAlerts) NotifyIssueAlert(request *cdkissuedomain.IssueRequest, _ string) error {
@@ -114,6 +115,11 @@ func (a *fakeAlerts) NotifyIssueAlert(request *cdkissuedomain.IssueRequest, _ st
 
 func (a *fakeAlerts) NotifyLowBalance(decimal.Decimal, decimal.Decimal) error {
 	a.lowBalance++
+	return nil
+}
+
+func (a *fakeAlerts) NotifyRefundDisableFailed(orderNo string, _ int, _ string) error {
+	a.refund = append(a.refund, orderNo)
 	return nil
 }
 
@@ -570,5 +576,103 @@ func TestIssuingUsesOrderSnapshotNotCurrentBinding(t *testing.T) {
 	items, err := f.service.RealtimeItems(plain)
 	if err != nil || len(items) != 0 {
 		t.Fatalf("order without snapshot must not be realtime: %v %v", items, err)
+	}
+}
+
+// 另一个任务持有占用时，不得再次调用卡台；占用结束后由持有方写入结果。
+func TestClaimPreventsConcurrentGatewayCalls(t *testing.T) {
+	f := newFixture(t)
+	f.configure(t)
+	f.bind(t)
+	f.gateway.issueErr = &cdkissuecontract.GatewayError{HTTPStatus: 503, Transient: true}
+	if _, err := f.service.EnsureIssued(context.Background(), order(1)); !errors.Is(err, cdkissuecontract.ErrIssueRetryable) {
+		t.Fatalf("want retryable, got %v", err)
+	}
+	views, _ := f.service.ListOrderRequests(100)
+	// 模拟另一个任务正在调用卡台。
+	until := f.now.Add(time.Minute)
+	f.db.Model(&cdkissuedomain.IssueRequest{}).Where("id = ?", views[0].ID).Update("claimed_until", until)
+
+	f.gateway.issueErr = nil
+	calls := len(f.gateway.calls)
+	if _, err := f.service.EnsureIssued(context.Background(), order(1)); !errors.Is(err, cdkissuecontract.ErrIssueRetryable) {
+		t.Fatalf("claimed request must be retried later, got %v", err)
+	}
+	if len(f.gateway.calls) != calls {
+		t.Fatalf("gateway must not be called while another worker holds the claim")
+	}
+
+	f.now = f.now.Add(2 * time.Minute) // 占用过期
+	codes, err := f.service.EnsureIssued(context.Background(), order(1))
+	if err != nil || len(codes[500]) != 1 {
+		t.Fatalf("expired claim must be taken over: codes=%v err=%v", codes, err)
+	}
+}
+
+// 已成功的请求不会被迟到的失败结果覆盖。
+func TestSucceededRequestIsNotOverwritten(t *testing.T) {
+	f := newFixture(t)
+	f.configure(t)
+	f.bind(t)
+	if _, err := f.service.EnsureIssued(context.Background(), order(1)); err != nil {
+		t.Fatalf("EnsureIssued: %v", err)
+	}
+	var stored cdkissuedomain.IssueRequest
+	f.db.First(&stored)
+	stale := stored
+	stale.Status = cdkissuedomain.RequestStatusFailed
+	saved, err := f.store.UpdateRequestIfStatus(&stale, cdkissuedomain.RequestStatusPending)
+	if err != nil || saved {
+		t.Fatalf("stale pending write must not apply: saved=%v err=%v", saved, err)
+	}
+	f.db.First(&stored, stored.ID)
+	if stored.Status != cdkissuedomain.RequestStatusSucceeded {
+		t.Fatalf("status = %s", stored.Status)
+	}
+}
+
+func TestRetryRejectsConcurrentDoubleClick(t *testing.T) {
+	f := newFixture(t)
+	f.configure(t)
+	f.bind(t)
+	f.gateway.issueErr = &cdkissuecontract.GatewayError{HTTPStatus: 400, Transient: false}
+	_, _ = f.service.EnsureIssued(context.Background(), order(1))
+	views, _ := f.service.ListOrderRequests(100)
+	if _, err := f.service.Retry(views[0].ID, cdkissuedomain.RetryNewKey); err != nil {
+		t.Fatalf("first retry: %v", err)
+	}
+	if _, err := f.service.Retry(views[0].ID, cdkissuedomain.RetryNewKey); !errors.Is(err, cdkissuecontract.ErrRetryNotAllowed) {
+		t.Fatalf("second retry must be refused, got %v", err)
+	}
+	if len(f.queue.orders) != 1 {
+		t.Fatalf("only one fulfillment must be enqueued, got %v", f.queue.orders)
+	}
+}
+
+func TestHandleOrderRefundedDisablesCodesAndAlertsOnRedeemed(t *testing.T) {
+	f := newFixture(t)
+	f.configure(t)
+	f.bind(t)
+	if _, err := f.service.EnsureIssued(context.Background(), order(2)); err != nil {
+		t.Fatalf("EnsureIssued: %v", err)
+	}
+	f.gateway.disableOK = false
+	if err := f.service.HandleOrderRefunded(context.Background(), 100, "DJ100"); err != nil {
+		t.Fatalf("HandleOrderRefunded: %v", err)
+	}
+	if len(f.alerts.refund) != 1 || f.alerts.refund[0] != "DJ100" {
+		t.Fatalf("redeemed codes after refund must alert, got %v", f.alerts.refund)
+	}
+	f.gateway.disableOK = true
+	if err := f.service.HandleOrderRefunded(context.Background(), 100, "DJ100"); err != nil {
+		t.Fatalf("HandleOrderRefunded: %v", err)
+	}
+	views, _ := f.service.ListOrderRequests(100)
+	if views[0].CodesDisabledAt == nil {
+		t.Fatalf("codes must be marked disabled")
+	}
+	// 没有可停用的码时静默返回。
+	if err := f.service.HandleOrderRefunded(context.Background(), 999, "DJ999"); err != nil {
+		t.Fatalf("order without codes: %v", err)
 	}
 }

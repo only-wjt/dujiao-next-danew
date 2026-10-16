@@ -19,6 +19,8 @@ const overviewCacheTTL = 60 * time.Second
 type AlertNotifier interface {
 	NotifyIssueAlert(request *cdkissuedomain.IssueRequest, message string) error
 	NotifyLowBalance(spendable, threshold decimal.Decimal) error
+	// NotifyRefundDisableFailed 退款后卡台卡密停用失败（可能已被兑换）。
+	NotifyRefundDisableFailed(orderNo string, failed int, message string) error
 }
 
 // Options 汇总实时发码服务依赖。

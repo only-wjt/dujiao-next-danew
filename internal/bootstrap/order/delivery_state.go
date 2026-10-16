@@ -1,6 +1,7 @@
 package orderwiring
 
 import (
+	"context"
 	"strings"
 	"time"
 
@@ -43,4 +44,25 @@ func (a orderDeliveryStateAdapter) ResolveDeliveryState(order *orderdomain.Order
 		return ""
 	}
 	return state
+}
+
+// cdkRefundTimeout 覆盖退款后调用卡台停码的耗时。
+const cdkRefundTimeout = time.Minute
+
+// newCDKRefundHook 全额退款后在后台停用该订单在卡台上尚未兑换的卡密。部分退款不处理，
+// 由管理员在订单详情手动停用。
+func newCDKRefundHook(issues *cdkissueapp.Service) func(order *orderdomain.Order) {
+	return func(order *orderdomain.Order) {
+		if issues == nil || order == nil || order.Status != constants.OrderStatusRefunded {
+			return
+		}
+		orderID, orderNo := order.ID, order.OrderNo
+		go func() {
+			ctx, cancel := context.WithTimeout(context.Background(), cdkRefundTimeout)
+			defer cancel()
+			if err := issues.HandleOrderRefunded(ctx, orderID, orderNo); err != nil {
+				logger.Warnw("order_refund_disable_cdk_failed", "order_id", orderID, "error", err)
+			}
+		}()
+	}
 }

@@ -204,12 +204,14 @@ func (h *WriteHandler) CreateGuestPayment(c *gin.Context) {
 	guestOrder, err := h.guestOrders.GetOrderByGuestOrderNoForTenant(tenantFromRequest(c), req.OrderNo, email, password)
 	if err != nil {
 		if errors.Is(err, ErrGuestOrderNotFound) {
+			ginutil.MarkGuestLookup(c, false, req.OrderNo)
 			ginutil.RespondError(c, response.CodeNotFound, "error.guest_order_not_found", nil)
 			return
 		}
 		ginutil.RespondError(c, response.CodeInternal, "error.order_fetch_failed", err)
 		return
 	}
+	ginutil.MarkGuestLookup(c, true, req.OrderNo)
 	result, err := h.payments.CreatePayment(CreatePaymentInput{
 		OrderID:       guestOrder.ID,
 		ChannelID:     req.ChannelID,
@@ -259,12 +261,14 @@ func (h *WriteHandler) CaptureGuestPayment(c *gin.Context) {
 	}
 	if _, err := h.guestOrders.GetOrderByGuestForTenant(tenantFromRequest(c), payment.OrderID, email, password); err != nil {
 		if errors.Is(err, ErrGuestOrderNotFound) {
+			ginutil.MarkGuestLookup(c, false, "")
 			ginutil.RespondError(c, response.CodeNotFound, "error.guest_order_not_found", nil)
 			return
 		}
 		ginutil.RespondError(c, response.CodeInternal, "error.order_fetch_failed", err)
 		return
 	}
+	ginutil.MarkGuestLookup(c, true, "")
 
 	updated, err := h.payments.CapturePayment(CapturePaymentInput{
 		PaymentID: paymentID,

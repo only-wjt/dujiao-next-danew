@@ -29,6 +29,7 @@ var (
 	ErrInvalidOrderAmount        = errors.New("invalid order amount")
 	ErrGuestEmailRequired        = errors.New("guest email required")
 	ErrGuestPasswordRequired     = errors.New("guest password required")
+	ErrGuestPasswordTooShort     = errors.New("guest password too short")
 	ErrInvalidEmail              = errors.New("invalid email")
 	ErrProductPurchaseNotAllowed = errors.New("product purchase not allowed")
 	ErrGuestCouponNotAllowed     = errors.New("guest coupon not allowed")
@@ -416,6 +417,7 @@ var guestOrderCommonErrorRules = []mappedError{
 	{target: productcontract.ErrProductSKUInvalid, code: response.CodeBadRequest, key: "error.order_item_invalid"},
 	{target: ErrGuestEmailRequired, code: response.CodeBadRequest, key: "error.guest_email_required"},
 	{target: ErrGuestPasswordRequired, code: response.CodeBadRequest, key: "error.guest_password_required"},
+	{target: ErrGuestPasswordTooShort, code: response.CodeBadRequest, key: "error.guest_password_too_short"},
 	{target: ErrInvalidEmail, code: response.CodeBadRequest, key: "error.email_invalid"},
 	{target: ErrInvoiceTitleRequired, code: response.CodeBadRequest, key: "error.invoice_title_required"},
 	{target: ErrInvoiceEmailRequired, code: response.CodeBadRequest, key: "error.invoice_email_required"},

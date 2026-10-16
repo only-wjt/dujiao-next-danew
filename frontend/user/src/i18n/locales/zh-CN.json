@@ -1114,7 +1114,7 @@
     "guestPurchase": "游客购买",
     "memberPurchase": "登录会员购买",
     "guestEmailPlaceholder": "邮箱（用于查询订单）",
-    "guestPasswordPlaceholder": "订单密码",
+    "guestPasswordPlaceholder": "订单密码（至少 6 位）",
     "guestInstructions": {
       "title": "填写说明：",
       "email": "邮箱：请填写一个可接收邮件的邮箱，您在付款后我们可通过该邮箱向您发送商品信息并可通过该邮箱联系您",
@@ -1178,6 +1178,7 @@
     "errors": {
       "emptyCart": "购物车为空",
       "missingGuest": "请输入邮箱与订单密码",
+      "guestPasswordTooShort": "订单密码至少 {count} 位（用于查看卡密，请勿过于简单）",
       "loginOrGuest": "请先登录或使用游客购买",
       "submitFailed": "提交失败，请稍后重试",
       "manualFormInvalid": "请完善交付信息后再提交",
@@ -1662,6 +1663,14 @@
     "redeem": "去兑换",
     "fulfillmentCopied": "已复制",
     "deliveryContentTitle": "你的卡密 / 交付内容",
+    "paymentRegion": "付款地区",
+    "regions": {
+      "PH": "菲律宾",
+      "US": "美国",
+      "JP": "日本",
+      "CL": "智利",
+      "EG": "埃及"
+    },
     "issuingTitle": "正在为你生成卡密…",
     "issuingHint": "付款已确认，卡密通常几秒内生成，页面会自动刷新，无需操作。",
     "delayedTitle": "卡密发放稍有延迟",
@@ -1687,6 +1696,7 @@
     "fulfillmentTruncatedHint": "当前仅显示前 100 条预览，请下载获取完整交付内容"
   },
   "guestOrders": {
+    "captchaHint": "检测到查询失败，请先完成人机验证再继续查询。",
     "title": "游客订单查询",
     "subtitle": "输入邮箱与订单密码查看历史订单",
     "emailPlaceholder": "邮箱",
@@ -1705,6 +1715,7 @@
     "nextPage": "下一页",
     "pageInfo": "第 {page} / {total} 页",
     "errors": {
+      "captchaRequired": "请先完成人机验证后再查询",
       "missing": "请输入邮箱与订单密码",
       "notFound": "未找到匹配订单，请检查输入信息",
       "searchFailed": "查询失败，请检查信息"

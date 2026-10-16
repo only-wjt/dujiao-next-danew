@@ -56,7 +56,7 @@ export type {
 export { productAPI, postAPI, bannerAPI, categoryAPI, memberLevelAPI } from './product'
 export { userAuthAPI, captchaAPI, configAPI } from './auth'
 export { userProfileAPI } from './user'
-export { userOrderAPI, guestOrderAPI, paymentAPI } from './order'
+export { userOrderAPI, guestOrderAPI, paymentAPI, setGuestLookupCaptcha } from './order'
 export { walletAPI, giftCardAPI } from './wallet'
 export { affiliateAPI } from './affiliate'
 export { resellerAPI } from './reseller'

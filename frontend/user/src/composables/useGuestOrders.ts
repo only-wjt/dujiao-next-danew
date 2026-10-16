@@ -18,6 +18,9 @@ export function useGuestOrders() {
   const orderNo = ref('')
   const loading = ref(false)
   const error = ref('')
+  // 后端在查询失败后要求人机验证（status_code 428）。
+  const captchaRequired = ref(false)
+  const captchaAttempt = ref(0)
   const orders = ref<any[]>([])
   const pagination = ref({
     page: 1,
@@ -81,11 +84,19 @@ export function useGuestOrders() {
       })
       orders.value = response.data.data || []
       pagination.value = response.data.pagination || pagination.value
-      if (orderNo.value && orders.value.length === 0) {
-        error.value = t('guestOrders.errors.notFound')
+      if (orders.value.length === 0) {
+        // 查不到即凭证错误：已出现过验证码时继续要求，并刷新一次性验证码。
+        if (captchaRequired.value) captchaAttempt.value++
+        if (orderNo.value) error.value = t('guestOrders.errors.notFound')
+      } else {
+        captchaRequired.value = false
       }
     } catch (err: any) {
       orders.value = []
+      if (err?.statusCode === 428) {
+        captchaRequired.value = true
+        captchaAttempt.value++
+      }
       error.value = err.message || t('guestOrders.errors.searchFailed')
     } finally {
       loading.value = false
@@ -170,6 +181,8 @@ export function useGuestOrders() {
     orderNo,
     loading,
     error,
+    captchaRequired,
+    captchaAttempt,
     orders,
     pagination,
     hasSavedAuth,

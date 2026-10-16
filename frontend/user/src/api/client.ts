@@ -176,8 +176,9 @@ function createClient(injectAuth: boolean) {
             if (!silentBusinessError) {
                 console.error('API Error:', errorMessage)
             }
-            const businessError = new Error(errorMessage) as Error & { silentBusinessError?: boolean }
+            const businessError = new Error(errorMessage) as Error & { silentBusinessError?: boolean; statusCode?: number }
             businessError.silentBusinessError = silentBusinessError
+            businessError.statusCode = Number(data.status_code)
             return Promise.reject(businessError)
         }
 

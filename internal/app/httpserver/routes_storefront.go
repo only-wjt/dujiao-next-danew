@@ -64,6 +64,7 @@ func registerStorefrontRoutes(
 	loginRule middleware.RateLimitRule,
 	guestReadRule middleware.RateLimitRule,
 	guestWriteRule middleware.RateLimitRule,
+	guestLookupGuard gin.HandlerFunc,
 ) {
 	storefront := apiV1.Group("")
 	storefront.Use(middleware.ResellerTenantMiddleware(c.ResellerDomainResolver))
@@ -85,6 +86,7 @@ func registerStorefrontRoutes(
 	guest := storefront.Group("/guest")
 	guestRead := guest.Group("")
 	guestRead.Use(middleware.RateLimitMiddleware(redisClient, guestReadRule, middleware.KeyByIP))
+	guestRead.Use(guestLookupGuard)
 	{
 		ordertransport.RegisterGuestPreviewRoute(guestRead, orderPreviewHandler)
 		ordertransport.RegisterGuestReadRoutes(guestRead, guestOrderHandler)
@@ -92,6 +94,7 @@ func registerStorefrontRoutes(
 	}
 	guestWrite := guest.Group("")
 	guestWrite.Use(middleware.RateLimitMiddleware(redisClient, guestWriteRule, middleware.KeyByIP))
+	guestWrite.Use(guestLookupGuard)
 	{
 		ordertransport.RegisterGuestCreateRoute(guestWrite, orderCreateHandler)
 		ordertransport.RegisterGuestCreateAndPayRoute(guestWrite, orderCreateHandler)

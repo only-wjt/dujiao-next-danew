@@ -27,6 +27,7 @@
           </Button>
         </div>
         <p class="text-xs text-muted-foreground mt-3">{{ t('guestOrders.tip') }}</p>
+        <GuestLookupCaptcha :required="captchaRequired" :attempt="captchaAttempt" class="mt-4" />
         <Alert v-if="error" variant="destructive" class="mt-4">
           <AlertDescription>{{ error }}</AlertDescription>
         </Alert>
@@ -96,12 +97,13 @@ import { Button, buttonVariants } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import EmptyState from '../components/EmptyState.vue'
 import PaginationNav from '../components/PaginationNav.vue'
+import GuestLookupCaptcha from '../components/order/GuestLookupCaptcha.vue'
 import { useGuestOrders } from '../composables/useGuestOrders'
 
 const { t } = useI18n()
 
 const {
-  savedAuth, email, orderPassword, orderNo, loading, error, orders, pagination,
+  savedAuth, email, orderPassword, orderNo, loading, error, captchaRequired, captchaAttempt, orders, pagination,
   hasSavedAuth, clearSaved, handleSearch, emptyMessage, changePage,
   statusLabel, statusVariant, formatMoney, formatDiscountMoney, hasDiscountAmount, hasDiscount, formatDate,
 } = useGuestOrders()

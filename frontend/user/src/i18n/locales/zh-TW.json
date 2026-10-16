@@ -1162,7 +1162,7 @@
     "guestPurchase": "遊客購買",
     "memberPurchase": "登入會員購買",
     "guestEmailPlaceholder": "信箱（用於查詢訂單）",
-    "guestPasswordPlaceholder": "訂單密碼",
+    "guestPasswordPlaceholder": "訂單密碼（至少 6 位）",
     "guestInstructions": {
       "title": "填寫說明：",
       "email": "信箱：請填寫一個可接收郵件的信箱，您在付款後我們可通過該信箱向您發送商品資訊並可通過該信箱聯絡您",
@@ -1226,6 +1226,7 @@
     "errors": {
       "emptyCart": "購物車為空",
       "missingGuest": "請輸入信箱與訂單密碼",
+      "guestPasswordTooShort": "訂單密碼至少 {count} 位（用於查看卡密，請勿過於簡單）",
       "loginOrGuest": "請先登入或使用遊客購買",
       "submitFailed": "提交失敗，請稍後重試",
       "manualFormInvalid": "請先完善交付資訊再提交",
@@ -1710,6 +1711,14 @@
     "redeem": "去兌換",
     "fulfillmentCopied": "已複製",
     "deliveryContentTitle": "你的卡密 / 交付內容",
+    "paymentRegion": "付款地區",
+    "regions": {
+      "PH": "菲律賓",
+      "US": "美國",
+      "JP": "日本",
+      "CL": "智利",
+      "EG": "埃及"
+    },
     "issuingTitle": "正在為你產生卡密…",
     "issuingHint": "付款已確認，卡密通常幾秒內產生，頁面會自動重新整理，無需操作。",
     "delayedTitle": "卡密發放稍有延遲",
@@ -1735,6 +1744,7 @@
     "fulfillmentTruncatedHint": "當前僅顯示前 100 條預覽，請下載獲取完整交付內容"
   },
   "guestOrders": {
+    "captchaHint": "偵測到查詢失敗，請先完成人機驗證再繼續查詢。",
     "title": "遊客訂單查詢",
     "subtitle": "輸入信箱與訂單密碼查看歷史訂單",
     "emailPlaceholder": "信箱",
@@ -1753,6 +1763,7 @@
     "nextPage": "下一頁",
     "pageInfo": "第 {page} / {total} 頁",
     "errors": {
+      "captchaRequired": "請先完成人機驗證後再查詢",
       "missing": "請輸入信箱與訂單密碼",
       "notFound": "未找到匹配訂單，請檢查輸入資訊",
       "searchFailed": "查詢失敗，請檢查資訊"
