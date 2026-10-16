@@ -19,6 +19,7 @@ import (
 	"github.com/dujiao-next/internal/shared/jsonmap"
 	"github.com/dujiao-next/internal/shared/jsonslice"
 	"github.com/dujiao-next/internal/shared/money"
+	"github.com/dujiao-next/internal/shared/richtext"
 	"github.com/dujiao-next/internal/upstream"
 
 	"github.com/shopspring/decimal"
@@ -102,8 +103,14 @@ func (s *Service) importUpstreamProduct(connectionID uint, upstreamProductID uin
 	// 下载图片到本地
 	localImages := s.downloadImages(ctx, adapter, upProduct.Images)
 
-	// 下载 Content 中引用的图片
-	localContent := s.downloadContentImages(ctx, adapter, upProduct.Content)
+	// 下载 Content 中引用的图片。
+	//
+	// 净化必须放在图片下载之后：上游正文是第三方可控内容，导入后会在本站前台以
+	// v-html 渲染，且本站还会再经 /api/v1/upstream/products 把它分发给下游站点。
+	// 不在导入边界净化，一个被入侵或本身恶意的上游就能把脚本注入本店与其下游。
+	// 放在图片替换之后是因为 downloadContentImages 会重写 src，顺序颠倒会让
+	// 重写结果绕过净化。
+	localContent := richtext.SanitizeLocalized(s.downloadContentImages(ctx, adapter, upProduct.Content))
 
 	// 确定交付类型：上游商品映射后统一使用 upstream 类型
 	fulfillmentType := constants.FulfillmentTypeUpstream
