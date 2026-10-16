@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -49,23 +50,31 @@ func CORSMiddleware(cfg config.CORSConfig) gin.HandlerFunc {
 	}
 	methodsHeader := strings.Join(allowedMethods, ", ")
 	headersHeader := strings.Join(allowedHeaders, ", ")
+	// 只有「纯通配且不带凭证」时响应才与请求来源无关，可以安全共享缓存。
+	// 其余任何配置下回显值都取决于 Origin，必须声明 Vary: Origin，
+	// 否则中间缓存会把发给某个来源的响应复用到另一个来源上。
+	variesByOrigin := cfg.AllowCredentials || !isPureWildcardAllowlist(allowedOrigins)
 
 	return func(c *gin.Context) {
 		origin := c.GetHeader("Origin")
 		allowedOrigin := resolveAllowedOrigin(origin, allowedOrigins, cfg.AllowCredentials)
 		if allowedOrigin != "" {
 			c.Writer.Header().Set("Access-Control-Allow-Origin", allowedOrigin)
-			if allowedOrigin != "*" {
-				c.Writer.Header().Add("Vary", "Origin")
-			}
 		}
-		if cfg.AllowCredentials {
+		if variesByOrigin {
+			c.Writer.Header().Add("Vary", "Origin")
+		}
+		// 只有确实回显了具体来源时才能声明允许凭证。与 "*" 组合或没有可用来源时
+		// 声明该头没有任何浏览器会接受，反而会误导调用方以为凭证请求被放行。
+		if cfg.AllowCredentials && allowedOrigin != "" && allowedOrigin != "*" {
 			c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
 		}
-		c.Writer.Header().Set("Access-Control-Allow-Headers", headersHeader)
-		c.Writer.Header().Set("Access-Control-Allow-Methods", methodsHeader)
-		if cfg.MaxAge > 0 {
-			c.Writer.Header().Set("Access-Control-Max-Age", strconv.Itoa(cfg.MaxAge))
+		if allowedOrigin != "" {
+			c.Writer.Header().Set("Access-Control-Allow-Headers", headersHeader)
+			c.Writer.Header().Set("Access-Control-Allow-Methods", methodsHeader)
+			if cfg.MaxAge > 0 {
+				c.Writer.Header().Set("Access-Control-Max-Age", strconv.Itoa(cfg.MaxAge))
+			}
 		}
 
 		if c.Request.Method == http.MethodOptions {
@@ -77,27 +86,83 @@ func CORSMiddleware(cfg config.CORSConfig) gin.HandlerFunc {
 	}
 }
 
+// isPureWildcardAllowlist 报告白名单是否为「仅一个 *」，即不针对具体来源的配置。
+func isPureWildcardAllowlist(allowedOrigins []string) bool {
+	if len(allowedOrigins) != 1 {
+		return false
+	}
+	return strings.TrimSpace(allowedOrigins[0]) == "*"
+}
+
+// resolveAllowedOrigin 决定本次请求应回显的 Access-Control-Allow-Origin 值。
+//
+// 规则：
+//   - 请求未携带 Origin → 不是跨域请求，不回显任何 CORS 头。
+//   - Origin 为 "null"、含逗号的多来源串、或不是 http/https 的绝对来源 → 一律拒绝。
+//     这些都是浏览器不会自发产生、或规范仅用于重定向/Service Worker 的形态，
+//     原样回显等于给攻击者一个任意来源的跨域读入口。
+//   - 命中白名单中的具体来源 → 回显该来源（大小写不敏感）。
+//   - 白名单含 "*" → 仅在不携带凭证时返回 "*"；携带凭证时通配不可用，返回空串
+//     让浏览器拒绝这次跨域读取，而不是把请求来源原样反射回去。
 func resolveAllowedOrigin(origin string, allowedOrigins []string, allowCredentials bool) string {
-	if len(allowedOrigins) == 0 {
+	origin = strings.TrimSpace(origin)
+	if origin == "" || len(allowedOrigins) == 0 {
 		return ""
 	}
+	if !isValidRequestOrigin(origin) {
+		return ""
+	}
+	// 先找精确匹配：白名单里同时写了 "*" 和具体来源时，具体来源必须优先命中，
+	// 否则一次通配符判定就会让后面的具体条目永远失效。
+	hasWildcard := false
 	for _, allowed := range allowedOrigins {
-		if allowed == "*" {
-			if allowCredentials && origin != "" {
-				return origin
-			}
-			return "*"
+		allowed = strings.TrimSpace(allowed)
+		if allowed == "" {
+			continue
 		}
-	}
-	if origin == "" {
-		return ""
-	}
-	for _, allowed := range allowedOrigins {
+		if allowed == "*" {
+			hasWildcard = true
+			continue
+		}
 		if strings.EqualFold(allowed, origin) {
 			return origin
 		}
 	}
+	// 未精确命中时才考虑通配符，且仅在不需要凭证时可用。
+	if hasWildcard && !allowCredentials {
+		return "*"
+	}
 	return ""
+}
+
+// isValidRequestOrigin 校验 Origin 头是否为可安全回显的单一来源。
+//
+// 必须同时满足：是 http/https 绝对来源、不含逗号（拒绝多来源列表）、
+// 且能被 net/url 解析出主机名。像 "null"、"https://evil.example, https://evil2.example"
+// 这类值都是跨域攻击的典型投递形态，不能进入白名单比较之后还回显出去。
+func isValidRequestOrigin(origin string) bool {
+	if origin == "null" {
+		return false
+	}
+	if strings.ContainsAny(origin, ",\x00") {
+		return false
+	}
+	parsed, err := url.Parse(origin)
+	if err != nil {
+		return false
+	}
+	scheme := strings.ToLower(parsed.Scheme)
+	if scheme != "http" && scheme != "https" {
+		return false
+	}
+	if parsed.Host == "" {
+		return false
+	}
+	// Origin 不该带路径、查询或片段；带上了说明不是浏览器生成的合法值。
+	if parsed.Path != "" || parsed.RawQuery != "" || parsed.Fragment != "" {
+		return false
+	}
+	return true
 }
 
 // RequestIDMiddleware 请求 ID 中间件
