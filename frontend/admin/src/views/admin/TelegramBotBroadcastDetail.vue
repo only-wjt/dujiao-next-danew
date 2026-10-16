@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { formatDate } from '@/utils/format'
 import { notifyError } from '@/utils/notify'
+import { sanitizeRichTextHtml } from '@/utils/sanitizeHtml'
 import { ArrowLeft, Loader2, Paperclip } from 'lucide-vue-next'
 
 const { t } = useI18n()
@@ -16,6 +17,10 @@ const broadcastId = computed(() => Number(route.params.id))
 
 const loading = ref(false)
 const broadcast = ref<AdminTelegramBroadcast | null>(null)
+
+// 广播正文来自服务端存储的富文本，直接 v-html 会把内容注入带到后台会话里——
+// 后台令牌存在同源 localStorage，任意同源脚本都能读走。渲染前统一净化。
+const sanitizedMessageHtml = computed(() => sanitizeRichTextHtml(broadcast.value?.message_html))
 
 const formatRecipientType = (value: string) =>
   value === 'specific' ? t('telegramBot.broadcasts.recipientTypeSpecific') : t('telegramBot.broadcasts.recipientTypeAll')
@@ -146,7 +151,7 @@ onMounted(() => {
         </CardHeader>
         <CardContent>
           <div class="rounded-md border bg-muted/50 p-4">
-            <div class="prose prose-sm max-w-none dark:prose-invert break-words whitespace-pre-wrap" v-html="broadcast.message_html" />
+            <div class="prose prose-sm max-w-none dark:prose-invert break-words whitespace-pre-wrap" v-html="sanitizedMessageHtml" />
           </div>
         </CardContent>
       </Card>
