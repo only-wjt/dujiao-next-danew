@@ -11,10 +11,11 @@ import (
 )
 
 type fakeGenerator struct {
-	xml    string
-	robots string
-	err    error
-	base   string
+	xml       string
+	robots    string
+	err       error
+	base      string
+	adminPath string
 }
 
 func (f *fakeGenerator) Generate(_ context.Context, baseURL string) (string, error) {
@@ -22,8 +23,9 @@ func (f *fakeGenerator) Generate(_ context.Context, baseURL string) (string, err
 	return f.xml, f.err
 }
 
-func (f *fakeGenerator) GenerateRobots(baseURL string) string {
+func (f *fakeGenerator) GenerateRobots(baseURL, adminPath string) string {
 	f.base = baseURL
+	f.adminPath = adminPath
 	return f.robots
 }
 
@@ -39,7 +41,7 @@ func (f fakeBrand) GetSiteURL() (string, error) {
 func TestGetSitemapUsesConfiguredSiteURL(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	gen := &fakeGenerator{xml: "<urlset/>"}
-	handler := NewHandler(gen, fakeBrand{url: "https://shop.example/"})
+	handler := NewHandler(gen, fakeBrand{url: "https://shop.example/"}, "/admin")
 
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
@@ -62,7 +64,7 @@ func TestGetSitemapUsesConfiguredSiteURL(t *testing.T) {
 func TestGetSitemapFallsBackToRequestHost(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	gen := &fakeGenerator{xml: "<urlset/>"}
-	handler := NewHandler(gen, fakeBrand{url: ""})
+	handler := NewHandler(gen, fakeBrand{url: ""}, "/admin")
 
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
@@ -80,7 +82,7 @@ func TestGetSitemapFallsBackToRequestHost(t *testing.T) {
 
 func TestGetSitemapUnavailableWithoutGenerator(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	handler := NewHandler(nil, nil)
+	handler := NewHandler(nil, nil, "/admin")
 
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
@@ -95,7 +97,7 @@ func TestGetSitemapUnavailableWithoutGenerator(t *testing.T) {
 
 func TestGetRobotsFallsBackWhenGeneratorMissing(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	handler := NewHandler(nil, nil)
+	handler := NewHandler(nil, nil, "/admin")
 
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)

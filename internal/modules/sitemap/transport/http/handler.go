@@ -12,7 +12,8 @@ import (
 // Generator 生成 sitemap.xml / robots.txt。
 type Generator interface {
 	Generate(ctx context.Context, baseURL string) (string, error)
-	GenerateRobots(baseURL string) string
+	// GenerateRobots 接收站点根 URL 与真实后台路径，后者来自 web.admin_path。
+	GenerateRobots(baseURL, adminPath string) string
 }
 
 // SiteBrandReader 提供后台配置的站点品牌 URL。
@@ -24,10 +25,12 @@ type SiteBrandReader interface {
 type Handler struct {
 	sitemap Generator
 	brand   SiteBrandReader
+	// adminPath 是 web.admin_path 配置的后台真实路径，用于生成正确的 robots 条目。
+	adminPath string
 }
 
-func NewHandler(sitemap Generator, brand SiteBrandReader) *Handler {
-	return &Handler{sitemap: sitemap, brand: brand}
+func NewHandler(sitemap Generator, brand SiteBrandReader, adminPath string) *Handler {
+	return &Handler{sitemap: sitemap, brand: brand, adminPath: adminPath}
 }
 
 // GetSitemap GET /sitemap.xml
@@ -55,7 +58,7 @@ func (h *Handler) GetRobots(c *gin.Context) {
 	body := "User-agent: *\nDisallow:\n"
 	if h != nil && h.sitemap != nil {
 		baseURL = h.resolveBaseURL(c)
-		body = h.sitemap.GenerateRobots(baseURL)
+		body = h.sitemap.GenerateRobots(baseURL, h.adminPath)
 	}
 
 	c.Header("Cache-Control", "public, max-age=3600")

@@ -230,8 +230,9 @@ func SetupRouter(cfg *config.Config, c *container.Container) *gin.Engine {
 	// 静态文件服务（上传的图片）必须放在前面。
 	r.Static("/uploads", "./uploads")
 
-	// SEO 资源（动态生成）。
-	sitemaptransport.RegisterRoutes(r, sitemaptransport.NewHandler(c.SitemapService, sitemapbrand.New(c.SettingService)))
+	// SEO 资源（动态生成）。传入真实后台路径，避免 robots.txt 硬编码 /admin/
+	// 而与 web.admin_path 的实际配置不符。
+	sitemaptransport.RegisterRoutes(r, sitemaptransport.NewHandler(c.SitemapService, sitemapbrand.New(c.SettingService), cfg.Web.AdminPath))
 
 	apiV1 := r.Group("/api/v1")
 	orderhttp.RegisterFolio(apiV1, c.OrderStore, c.PaymentStore, func() string {
