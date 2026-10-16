@@ -10,6 +10,7 @@ import (
 	"github.com/dujiao-next/internal/shared/jsonmap"
 	"github.com/dujiao-next/internal/shared/jsonslice"
 	"github.com/dujiao-next/internal/shared/money"
+	"github.com/dujiao-next/internal/shared/richtext"
 
 	"github.com/shopspring/decimal"
 )
@@ -106,8 +107,8 @@ func (s *WriteService) Create(input CreateProductInput) (*productdomain.Product,
 		SeoMetaJSON:          jsonmap.JSON(input.SeoMetaJSON),
 		TitleJSON:            jsonmap.JSON(input.TitleJSON),
 		DescriptionJSON:      jsonmap.JSON(input.DescriptionJSON),
-		ContentJSON:          jsonmap.JSON(input.ContentJSON),
-		InstructionsJSON:     jsonmap.JSON(input.InstructionsJSON),
+		ContentJSON:          jsonmap.JSON(richtext.SanitizeLocalized(input.ContentJSON)),
+		InstructionsJSON:     jsonmap.JSON(richtext.SanitizeLocalized(input.InstructionsJSON)),
 		RedeemURL:            redeemURL,
 		ManualFormSchemaJSON: jsonmap.JSON{},
 		PriceAmount:          money.FromDecimal(priceAmount),

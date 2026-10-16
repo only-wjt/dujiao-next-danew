@@ -111,6 +111,14 @@ upload:
   max_height: 4096
 
 cors:
+  # 允许的跨域来源白名单。
+  #
+  # 重要：不要与 allow_credentials: true 同时使用 "*"。携带凭证的跨域请求必须
+  # 回显一个具体来源，而通配符无法回显，两者组合只会让凭证请求被浏览器拒绝，
+  # 且历史上该组合的实现会把请求来源原样反射回去，等于开放任意站点的跨域读取。
+  # 生产环境请逐条列出真实来源，例如：
+  #   - https://card.example.com
+  #   - https://www.example.com
   allowed_origins:
     - "*"
   allowed_methods:
@@ -128,7 +136,9 @@ cors:
     - Cache-Control
     - X-Requested-With
     - X-CSRF-Token
-  allow_credentials: true
+  # 仅在 allowed_origins 为具体来源时才有效；为 true 时请勿保留 "*"。
+  # 默认 false，与上面的 "*" 配对：通配符的语义是「公开可读、不带凭证」。
+  allow_credentials: false
   max_age: 600
 
 security:
@@ -142,6 +152,28 @@ security:
     require_lower: true
     require_number: true
     require_special: false
+
+  # 安全响应头。默认只启用零副作用的三项，CSP 与 HSTS 需要按站点情况显式开启。
+  security_headers:
+    enabled: true
+    # DENY 完全禁止被 iframe 嵌套；SAMEORIGIN 允许同源嵌套（后台预览等场景需要）。
+    frame_options: SAMEORIGIN
+    content_type_options: nosniff
+    referrer_policy: strict-origin-when-cross-origin
+    # 留空则下发一份关闭摄像头/麦克风/定位/支付/USB 的默认策略。
+    permissions_policy: ""
+    # 留空即不下发 CSP。启用前请确认不会打断以下功能：
+    #   - 站点设置里的「自定义脚本」（以内联 <script> 注入，需要 'unsafe-inline' 或改用 nonce）
+    #   - Cloudflare Turnstile     → script-src 与 frame-src 需放行 https://challenges.cloudflare.com
+    #   - Google 登录              → script-src / frame-src 需放行 https://accounts.google.com
+    #   - 支付渠道回跳页面          → frame-ancestors / form-action 需放行对应渠道域名
+    # 参考起点：default-src 'self'; img-src 'self' data: https:; style-src 'self' 'unsafe-inline'
+    content_security_policy: ""
+    # 为 0 即不下发 HSTS。一旦下发，浏览器会长期拒绝该域名的明文访问，请确认
+    # 对外仅提供 HTTPS 后再开启；推荐 31536000（一年）。
+    hsts_max_age_seconds: 0
+    hsts_include_subdomains: false
+    hsts_preload: false
 
 email:
   enabled: true

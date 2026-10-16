@@ -99,7 +99,9 @@ export function useOrderDisplayHelpers(order: Ref<any>) {
     ALLOWED_ATTR: ['href', 'target', 'rel', 'src', 'alt', 'title'],
     FORBID_ATTR: ['style', 'class', 'id'],
     ALLOW_DATA_ATTR: false,
-    ALLOWED_URI_REGEXP: /^(?:https?:|mailto:|tel:|#|\/(?!\/))/i,
+    // 刻意不设 ALLOWED_URI_REGEXP：该正则会套用到每个属性值上，把 target/rel
+    // 这类非 URL 取值一并剥除，反而让外链少了 rel 保护。内置 URI 处理已能挡住
+    // javascript: 与 data:，无需自定义。
   })
 
   const instructionBlocks = (items: any): Array<{ title: string; html: string }> => {

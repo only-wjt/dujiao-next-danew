@@ -67,13 +67,27 @@ func (s *Service) Generate(ctx context.Context, baseURL string) (string, error) 
 	return xmlStr, nil
 }
 
-// GenerateRobots 生成 robots.txt 内容
-func (s *Service) GenerateRobots(baseURL string) string {
+// GenerateRobots 生成 robots.txt 内容。
+//
+// adminPath 是 web.admin_path 配置的**真实**后台路径。此前这里硬编码
+// "Disallow: /admin/"，而该配置项可被改成任意不易猜测的路径（配置样例也如此建议）。
+// 后果有两层：真正生效的后台路径完全没有被提示，而 robots.txt 却把默认的
+// /admin/ 当作真实路径公布出去。现在改为跟随实际配置。
+//
+// 注意 robots.txt 不是访问控制手段——Disallow 只约束守规矩的爬虫。这里保留这些
+// 条目是为了减少搜索引擎对私密路径的抓取，后台自身的访问控制必须由认证与限流承担。
+func (s *Service) GenerateRobots(baseURL, adminPath string) string {
 	baseURL = strings.TrimRight(strings.TrimSpace(baseURL), "/")
+	adminPath = normalizeAdminPathForRobots(adminPath)
+
 	var b strings.Builder
 	b.WriteString("User-agent: *\n")
 	b.WriteString("Disallow: /api/\n")
-	b.WriteString("Disallow: /admin/\n")
+	if adminPath != "" {
+		b.WriteString("Disallow: ")
+		b.WriteString(adminPath)
+		b.WriteString("\n")
+	}
 	b.WriteString("Disallow: /me/\n")
 	b.WriteString("Disallow: /cart\n")
 	b.WriteString("Disallow: /checkout\n")
@@ -89,6 +103,31 @@ func (s *Service) GenerateRobots(baseURL string) string {
 		b.WriteString("/sitemap.xml\n")
 	}
 	return b.String()
+}
+
+// normalizeAdminPathForRobots 把 web.admin_path 规范成可安全写进 robots.txt 的一行。
+//
+// 已由 web.ValidateAdminPath 在启动时校验过，这里只做写入前的最低限度防护：
+// 去掉首尾空白与尾部斜杠，补回一个尾部斜杠作为「目录前缀」语义
+// （Disallow: /admin 只精确匹配该路径本身，/admin/ 才覆盖其下所有页面），
+// 并拒掉任何含换行的值——否则一个畸形配置就能往 robots.txt 里注入额外的指令行。
+// 返回空串表示不输出 admin 条目。
+func normalizeAdminPathForRobots(adminPath string) string {
+	adminPath = strings.TrimSpace(adminPath)
+	if adminPath == "" || adminPath == "/" {
+		return ""
+	}
+	if strings.ContainsAny(adminPath, "\r\n") {
+		return ""
+	}
+	if !strings.HasPrefix(adminPath, "/") {
+		adminPath = "/" + adminPath
+	}
+	adminPath = strings.TrimRight(adminPath, "/") + "/"
+	if adminPath == "/" {
+		return ""
+	}
+	return adminPath
 }
 
 // xmlEntry 是 sitemap.xml 的传输结构。

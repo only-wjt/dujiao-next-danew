@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -49,23 +50,36 @@ func CORSMiddleware(cfg config.CORSConfig) gin.HandlerFunc {
 	}
 	methodsHeader := strings.Join(allowedMethods, ", ")
 	headersHeader := strings.Join(allowedHeaders, ", ")
+	// 只有白名单是纯通配（唯一一项为 "*"）时，回显值才与请求来源无关：
+	// 该配置下 resolveAllowedOrigin 恒定返回 "*"（不带凭证）或 ""（带凭证，
+	// 此时通配符不可用），两者都不随 Origin 变化，响应可安全共享缓存。
+	//
+	// 其余配置（含具体来源，或 "*" 与具体来源混写）都要按来源匹配，必须声明
+	// Vary: Origin，否则中间缓存会把发给某个来源的响应复用到另一个来源上。
+	variesByOrigin := !isPureWildcardAllowlist(allowedOrigins)
 
 	return func(c *gin.Context) {
 		origin := c.GetHeader("Origin")
 		allowedOrigin := resolveAllowedOrigin(origin, allowedOrigins, cfg.AllowCredentials)
 		if allowedOrigin != "" {
 			c.Writer.Header().Set("Access-Control-Allow-Origin", allowedOrigin)
-			if allowedOrigin != "*" {
-				c.Writer.Header().Add("Vary", "Origin")
-			}
 		}
-		if cfg.AllowCredentials {
+		if variesByOrigin {
+			// 用 Add 而非 Set：上游可能已经写过 Vary（如 Accept-Encoding），
+			// 多行 Vary 在语义上等价于逗号合并，不会覆盖已有值。
+			c.Writer.Header().Add("Vary", "Origin")
+		}
+		// 只有确实回显了具体来源时才能声明允许凭证。与 "*" 组合或没有可用来源时
+		// 声明该头没有任何浏览器会接受，反而会误导调用方以为凭证请求被放行。
+		if cfg.AllowCredentials && allowedOrigin != "" && allowedOrigin != "*" {
 			c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
 		}
-		c.Writer.Header().Set("Access-Control-Allow-Headers", headersHeader)
-		c.Writer.Header().Set("Access-Control-Allow-Methods", methodsHeader)
-		if cfg.MaxAge > 0 {
-			c.Writer.Header().Set("Access-Control-Max-Age", strconv.Itoa(cfg.MaxAge))
+		if allowedOrigin != "" {
+			c.Writer.Header().Set("Access-Control-Allow-Headers", headersHeader)
+			c.Writer.Header().Set("Access-Control-Allow-Methods", methodsHeader)
+			if cfg.MaxAge > 0 {
+				c.Writer.Header().Set("Access-Control-Max-Age", strconv.Itoa(cfg.MaxAge))
+			}
 		}
 
 		if c.Request.Method == http.MethodOptions {
@@ -77,27 +91,83 @@ func CORSMiddleware(cfg config.CORSConfig) gin.HandlerFunc {
 	}
 }
 
+// isPureWildcardAllowlist 报告白名单是否为「仅一个 *」，即不针对具体来源的配置。
+func isPureWildcardAllowlist(allowedOrigins []string) bool {
+	if len(allowedOrigins) != 1 {
+		return false
+	}
+	return strings.TrimSpace(allowedOrigins[0]) == "*"
+}
+
+// resolveAllowedOrigin 决定本次请求应回显的 Access-Control-Allow-Origin 值。
+//
+// 规则：
+//   - 请求未携带 Origin → 不是跨域请求，不回显任何 CORS 头。
+//   - Origin 为 "null"、含逗号的多来源串、或不是 http/https 的绝对来源 → 一律拒绝。
+//     这些都是浏览器不会自发产生、或规范仅用于重定向/Service Worker 的形态，
+//     原样回显等于给攻击者一个任意来源的跨域读入口。
+//   - 命中白名单中的具体来源 → 回显该来源（大小写不敏感）。
+//   - 白名单含 "*" → 仅在不携带凭证时返回 "*"；携带凭证时通配不可用，返回空串
+//     让浏览器拒绝这次跨域读取，而不是把请求来源原样反射回去。
 func resolveAllowedOrigin(origin string, allowedOrigins []string, allowCredentials bool) string {
-	if len(allowedOrigins) == 0 {
+	origin = strings.TrimSpace(origin)
+	if origin == "" || len(allowedOrigins) == 0 {
 		return ""
 	}
+	if !isValidRequestOrigin(origin) {
+		return ""
+	}
+	// 先找精确匹配：白名单里同时写了 "*" 和具体来源时，具体来源必须优先命中，
+	// 否则一次通配符判定就会让后面的具体条目永远失效。
+	hasWildcard := false
 	for _, allowed := range allowedOrigins {
-		if allowed == "*" {
-			if allowCredentials && origin != "" {
-				return origin
-			}
-			return "*"
+		allowed = strings.TrimSpace(allowed)
+		if allowed == "" {
+			continue
 		}
-	}
-	if origin == "" {
-		return ""
-	}
-	for _, allowed := range allowedOrigins {
+		if allowed == "*" {
+			hasWildcard = true
+			continue
+		}
 		if strings.EqualFold(allowed, origin) {
 			return origin
 		}
 	}
+	// 未精确命中时才考虑通配符，且仅在不需要凭证时可用。
+	if hasWildcard && !allowCredentials {
+		return "*"
+	}
 	return ""
+}
+
+// isValidRequestOrigin 校验 Origin 头是否为可安全回显的单一来源。
+//
+// 必须同时满足：是 http/https 绝对来源、不含逗号（拒绝多来源列表）、
+// 且能被 net/url 解析出主机名。像 "null"、"https://evil.example, https://evil2.example"
+// 这类值都是跨域攻击的典型投递形态，不能进入白名单比较之后还回显出去。
+func isValidRequestOrigin(origin string) bool {
+	if origin == "null" {
+		return false
+	}
+	if strings.ContainsAny(origin, ",\x00") {
+		return false
+	}
+	parsed, err := url.Parse(origin)
+	if err != nil {
+		return false
+	}
+	scheme := strings.ToLower(parsed.Scheme)
+	if scheme != "http" && scheme != "https" {
+		return false
+	}
+	if parsed.Host == "" {
+		return false
+	}
+	// Origin 不该带路径、查询或片段；带上了说明不是浏览器生成的合法值。
+	if parsed.Path != "" || parsed.RawQuery != "" || parsed.Fragment != "" {
+		return false
+	}
+	return true
 }
 
 // RequestIDMiddleware 请求 ID 中间件
@@ -439,4 +509,78 @@ func newHS256JWTParser() *jwt.Parser {
 
 func isActiveUserStatus(status string) bool {
 	return strings.ToLower(strings.TrimSpace(status)) == constants.UserStatusActive
+}
+
+// SecurityHeadersMiddleware 下发安全响应头。
+//
+// 审计 F2：此前响应中缺少 CSP、X-Frame-Options、X-Content-Type-Options、
+// Referrer-Policy、Permissions-Policy，使 XSS 载荷可内联执行、页面可被 iframe
+// 嵌套点击劫持、MIME 嗅探与 Referer 泄露完整 URL 均无缓解。
+//
+// 默认只下发零副作用的三项；CSP 与 HSTS 需要显式配置后才生效，原因见
+// config.SecurityHeadersConfig 的说明——它们误配会直接打断站点功能。
+//
+// 头在 c.Next() 之前写入：静态文件与 SPA 兜底都走同一个引擎，提前写入可保证
+// 所有响应（含 404/错误页）都带上，而事后写入会被已提交的响应头丢掉。
+func SecurityHeadersMiddleware(cfg config.SecurityHeadersConfig) gin.HandlerFunc {
+	if !cfg.Enabled {
+		return func(c *gin.Context) { c.Next() }
+	}
+
+	frameOptions := strings.TrimSpace(cfg.FrameOptions)
+	contentTypeOptions := strings.TrimSpace(cfg.ContentTypeOptions)
+	referrerPolicy := strings.TrimSpace(cfg.ReferrerPolicy)
+	permissionsPolicy := strings.TrimSpace(cfg.PermissionsPolicy)
+	if permissionsPolicy == "" {
+		permissionsPolicy = config.DefaultPermissionsPolicy()
+	}
+	csp := strings.TrimSpace(cfg.ContentSecurityPolicy)
+
+	hsts := buildHSTSHeader(cfg)
+
+	return func(c *gin.Context) {
+		header := c.Writer.Header()
+		// X-Frame-Options 已被 CSP 的 frame-ancestors 取代，但旧浏览器仍需前者。
+		// 两者同时下发会导致旧浏览器优先采用更宽松的一方，因此只发 X-Frame-Options，
+		// 由运维在需要细粒度控制时改用 CSP 的 frame-ancestors。
+		if frameOptions != "" {
+			header.Set("X-Frame-Options", frameOptions)
+		}
+		if contentTypeOptions != "" {
+			header.Set("X-Content-Type-Options", contentTypeOptions)
+		}
+		if referrerPolicy != "" {
+			header.Set("Referrer-Policy", referrerPolicy)
+		}
+		if permissionsPolicy != "" {
+			header.Set("Permissions-Policy", permissionsPolicy)
+		}
+		if csp != "" {
+			header.Set("Content-Security-Policy", csp)
+		}
+		if hsts != "" {
+			header.Set("Strict-Transport-Security", hsts)
+		}
+
+		c.Next()
+	}
+}
+
+// buildHSTSHeader 组装 Strict-Transport-Security 值；未启用时返回空串。
+//
+// 注意：本中间件不感知当前连接是否经由 HTTPS。若部署在反向代理之后且代理已
+// 终结 TLS，HttpOnly 之外的判断无从进行，HSTS 只在明确配置后才下发，
+// 由运维确认对外访问确实是 HTTPS 再开启。
+func buildHSTSHeader(cfg config.SecurityHeadersConfig) string {
+	if cfg.HSTSMaxAgeSeconds <= 0 {
+		return ""
+	}
+	parts := []string{"max-age=" + strconv.Itoa(cfg.HSTSMaxAgeSeconds)}
+	if cfg.HSTSIncludeSubDomains {
+		parts = append(parts, "includeSubDomains")
+	}
+	if cfg.HSTSPreload {
+		parts = append(parts, "preload")
+	}
+	return strings.Join(parts, "; ")
 }

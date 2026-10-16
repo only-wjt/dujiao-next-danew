@@ -14,12 +14,36 @@ import (
 )
 
 // 保留路径，不能与 admin path 冲突或互为前缀。
+//
+// 这些前缀下的请求永不回落到 SPA：它们由后端路由或独立静态服务负责，未命中的
+// 请求必须保持 404，否则调用了不存在接口的客户端会拿到 index.html 当响应体去解析 JSON。
 var reservedPaths = []string{"/api", "/uploads", "/health"}
+
+// staticOnlyPaths 下的路径只服务真实存在的文件，未命中时返回 404 而不是 SPA 兜底。
+//
+// "/assets" 属于此类：该前缀下只有 Vite 产出的静态文件（带内容 hash），不存在任何
+// 前端路由。若回落到 index.html，不存在的构建产物与源映射探测都会拿到
+// 200 + HTML 壳，使状态码枚举完全不可信——审计中正是这一点让「生产构建是否
+// 泄漏 .map」无法证伪。
+//
+// 注意与 reservedPaths 的区别：这里真实存在的产物仍须正常返回，只是不再兜底。
+var staticOnlyPaths = []string{"/assets"}
 
 // isReservedPath 报告请求路径是否落在后端保留前缀之下。
 func isReservedPath(p string) bool {
-	for _, r := range reservedPaths {
-		if p == r || strings.HasPrefix(p, r+"/") {
+	return isUnderAnyPrefix(p, reservedPaths)
+}
+
+// isStaticOnlyPath 报告请求路径是否落在「只服务真实文件」的前缀之下。
+func isStaticOnlyPath(p string) bool {
+	return isUnderAnyPrefix(p, staticOnlyPaths)
+}
+
+// isUnderAnyPrefix 按路径段匹配：前缀本身或其子路径命中，而 /apiary 这类
+// 仅共享字符串前缀的路径不算命中。
+func isUnderAnyPrefix(p string, prefixes []string) bool {
+	for _, prefix := range prefixes {
+		if p == prefix || strings.HasPrefix(p, prefix+"/") {
 			return true
 		}
 	}
@@ -191,6 +215,12 @@ func RegisterUser(r *gin.Engine, fsys fs.FS) error {
 		}
 		if hasFile(fsys, fp) {
 			serveAsset(c, fileServer, fp)
+			return
+		}
+		// 构建产物目录下不存在前端路由，未命中即真的不存在该文件。
+		// 回落到 index.html 会让不存在的 .js/.map 也返回 200，使状态码枚举失真。
+		if isStaticOnlyPath(c.Request.URL.Path) {
+			c.String(http.StatusNotFound, "404 page not found")
 			return
 		}
 		serveIndex(c, indexCached)

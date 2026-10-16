@@ -33,7 +33,7 @@
 
         <div
           class="prose max-w-none dark:prose-invert prose-a:text-primary prose-img:rounded-md"
-          v-html="processHtmlForDisplay(getLocalizedText(post.content))"
+          v-html="sanitizeRichTextHtml(getLocalizedText(post.content))"
         ></div>
 
         <!-- 相关商品 -->
@@ -85,7 +85,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { getImageUrl } from '../../utils/image'
-import { processHtmlForDisplay } from '../../utils/content'
+import { sanitizeRichTextHtml } from '../../utils/content'
 import { useBlogDetail } from '../../composables/useBlogDetail'
 
 const { t } = useI18n()

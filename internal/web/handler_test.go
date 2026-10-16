@@ -397,3 +397,79 @@ func TestCacheControlHeaders(t *testing.T) {
 		})
 	}
 }
+
+// TestRegisterUser_MissingAssetIsReal404 校验 /assets 下未命中的请求返回真实 404，
+// 而不是伪装成 200 的 SPA 壳。
+//
+// 审计 F4：此前几乎所有未知路径都返回 200 + index.html，导致状态码枚举不可靠——
+// 源映射探测（/assets/xxx.js.map）无论文件是否存在都得到 200，无法证伪。生产构建
+// 未开启 sourcemap，这些文件本就不存在，应当如实返回 404。
+func TestRegisterUser_MissingAssetIsReal404(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	r := gin.New()
+	if err := RegisterUser(r, newUserFS()); err != nil {
+		t.Fatalf("RegisterUser: %v", err)
+	}
+
+	for _, p := range []string{
+		"/assets/index-Ds9oSqVC.js.map",
+		"/assets/vendor-vue-i18n-tQhtYk3n.js.map",
+		"/assets/does-not-exist.js",
+		"/assets",
+	} {
+		t.Run(p, func(t *testing.T) {
+			req := httptest.NewRequest(http.MethodGet, p, nil)
+			w := httptest.NewRecorder()
+			r.ServeHTTP(w, req)
+
+			if w.Code != http.StatusNotFound {
+				t.Fatalf("status = %d, want 404", w.Code)
+			}
+			if strings.Contains(w.Body.String(), "user-spa") {
+				t.Fatalf("missing asset fell back to the SPA shell: %s", w.Body.String())
+			}
+		})
+	}
+}
+
+// TestRegisterUser_ExistingAssetStillServed 确认收紧兜底没有误伤真实产物——
+// /assets 下存在的文件仍须正常返回。
+func TestRegisterUser_ExistingAssetStillServed(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	r := gin.New()
+	if err := RegisterUser(r, newUserFS()); err != nil {
+		t.Fatalf("RegisterUser: %v", err)
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/assets/u.js", nil)
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200", w.Code)
+	}
+	if !strings.Contains(w.Body.String(), "console.log") {
+		t.Fatalf("body = %s, want the real asset", w.Body.String())
+	}
+}
+
+// TestRegisterUser_AssetsLookalikeStillServesSPA 确认按路径段匹配，
+// /assets-guide 这类只是恰好同前缀的前端路由不受影响。
+func TestRegisterUser_AssetsLookalikeStillServesSPA(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	r := gin.New()
+	if err := RegisterUser(r, newUserFS()); err != nil {
+		t.Fatalf("RegisterUser: %v", err)
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/assets-guide", nil)
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200", w.Code)
+	}
+	if !strings.Contains(w.Body.String(), "user-spa") {
+		t.Fatalf("expected SPA fallback, got: %s", w.Body.String())
+	}
+}

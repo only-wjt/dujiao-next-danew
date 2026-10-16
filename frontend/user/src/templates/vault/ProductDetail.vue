@@ -192,7 +192,7 @@
         </div>
         <div class="prose max-w-none dark:prose-invert prose-a:text-primary prose-img:rounded-md">
           <p v-if="getLocalizedText(product.description)">{{ getLocalizedText(product.description) }}</p>
-          <div v-if="product.content" v-html="processHtmlForDisplay(getLocalizedText(product.content))"></div>
+          <div v-if="product.content" v-html="sanitizeRichTextHtml(getLocalizedText(product.content))"></div>
         </div>
       </section>
 
@@ -253,7 +253,7 @@ import {
   RotateCw, ShoppingCart, Tag, TicketCheck, UserPlus, Zap,
 } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
-import { processHtmlForDisplay } from '../../utils/content'
+import { sanitizeRichTextHtml } from '../../utils/content'
 import { useProductDetail } from '../../composables/useProductDetail'
 import VaultProductMobileBar from './components/VaultProductMobileBar.vue'
 

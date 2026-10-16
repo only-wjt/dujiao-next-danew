@@ -12,6 +12,7 @@ import (
 	"github.com/dujiao-next/internal/shared/jsonmap"
 	"github.com/dujiao-next/internal/shared/jsonslice"
 	"github.com/dujiao-next/internal/shared/money"
+	"github.com/dujiao-next/internal/shared/richtext"
 
 	"github.com/shopspring/decimal"
 )
@@ -47,8 +48,8 @@ func (s *WriteService) Update(id string, input CreateProductInput) (*productdoma
 	product.SeoMetaJSON = jsonmap.JSON(input.SeoMetaJSON)
 	product.TitleJSON = jsonmap.JSON(input.TitleJSON)
 	product.DescriptionJSON = jsonmap.JSON(input.DescriptionJSON)
-	product.ContentJSON = jsonmap.JSON(input.ContentJSON)
-	product.InstructionsJSON = jsonmap.JSON(input.InstructionsJSON)
+	product.ContentJSON = jsonmap.JSON(richtext.SanitizeLocalized(input.ContentJSON))
+	product.InstructionsJSON = jsonmap.JSON(richtext.SanitizeLocalized(input.InstructionsJSON))
 	redeemURL, err := productdomain.NormalizeRedeemURL(input.RedeemURL)
 	if err != nil {
 		return nil, productcontract.ErrRedeemURLInvalid

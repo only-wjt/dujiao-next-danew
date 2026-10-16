@@ -6,6 +6,7 @@ import (
 
 	"github.com/dujiao-next/internal/constants"
 	"github.com/dujiao-next/internal/shared/jsonmap"
+	"github.com/dujiao-next/internal/shared/richtext"
 )
 
 var settingSupportedLanguages = append([]string(nil), constants.SupportedLocales...)
@@ -38,7 +39,8 @@ func normalizeSiteSetting(value map[string]interface{}) jsonmap.JSON {
 	normalized["brand"] = normalizeSiteBrand(value["brand"])
 	normalized["contact"] = normalizeSiteContact(value["contact"])
 	normalized["seo"] = normalizeSiteLocalizedBlock(value["seo"], []string{"title", "keywords", "description"})
-	normalized["legal"] = normalizeSiteLocalizedBlock(value["legal"], []string{"terms", "privacy"})
+	// 条款与隐私政策由富文本编辑器维护，前端以 v-html 渲染，故走净化版本。
+	normalized["legal"] = normalizeSiteLocalizedHTMLBlock(value["legal"], []string{"terms", "privacy"})
 	normalized["about"] = normalizeSiteAbout(value["about"])
 	normalized["scripts"] = normalizeSiteScripts(value["scripts"])
 	normalized["footer_links"] = normalizeSiteFooterLinks(value["footer_links"])
@@ -191,6 +193,46 @@ func normalizeSiteLocalizedField(raw interface{}) map[string]interface{} {
 	}
 
 	return fieldResult
+}
+
+// normalizeSiteLocalizedHTMLField 与 normalizeSiteLocalizedField 相同，但会把每个
+// 语言取值的富文本 HTML 收敛到安全白名单。
+//
+// 只用于前端以 v-html 渲染的字段（当前是条款与隐私政策）。不能直接改上述通用
+// 函数：SEO 标题、关于页简介等字段走 {{ }} 插值渲染，Vue 已自动转义，再净化一次
+// 会把文本里的 "<" 变成实体，页面上显示成 &lt;。
+func normalizeSiteLocalizedHTMLField(raw interface{}) map[string]interface{} {
+	fieldResult := make(map[string]interface{}, len(settingSupportedLanguages))
+	for _, language := range settingSupportedLanguages {
+		fieldResult[language] = ""
+	}
+
+	fieldRaw, ok := raw.(map[string]interface{})
+	if !ok {
+		return fieldResult
+	}
+
+	for _, language := range settingSupportedLanguages {
+		fieldResult[language] = richtext.Sanitize(normalizeSettingText(fieldRaw[language]))
+	}
+
+	return fieldResult
+}
+
+// normalizeSiteLocalizedHTMLBlock 是 normalizeSiteLocalizedBlock 的净化版本。
+func normalizeSiteLocalizedHTMLBlock(raw interface{}, fields []string) map[string]interface{} {
+	result := make(map[string]interface{}, len(fields))
+	blockMap, _ := raw.(map[string]interface{})
+
+	for _, field := range fields {
+		if blockMap == nil {
+			result[field] = normalizeSiteLocalizedHTMLField(nil)
+			continue
+		}
+		result[field] = normalizeSiteLocalizedHTMLField(blockMap[field])
+	}
+
+	return result
 }
 
 func normalizeSiteLocalizedList(raw interface{}, maxItems int) []interface{} {

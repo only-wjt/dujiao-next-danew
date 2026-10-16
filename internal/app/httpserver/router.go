@@ -220,6 +220,9 @@ func SetupRouter(cfg *config.Config, c *container.Container) *gin.Engine {
 	// middleware.RequestIDMiddleware 必须前置于 middleware.RecoveryMiddleware：panic 日志与响应都依赖 request_id。
 	r.Use(middleware.RequestIDMiddleware())
 	r.Use(middleware.RecoveryMiddleware())
+	// 安全响应头放在日志之后、业务之前：需要覆盖全部响应（含错误页与 SPA 兜底），
+	// 但不参与请求日志字段的采集。
+	r.Use(middleware.SecurityHeadersMiddleware(cfg.Security.SecurityHeaders))
 	r.Use(middleware.LoggerMiddleware(log))
 	r.Use(middleware.CORSMiddleware(cfg.CORS))
 	r.Use(middleware.CallbackRouteMiddleware(c.SettingService, paymentCallbackHandler, paymentWebhookHandler, upstreamHandler))
@@ -227,8 +230,9 @@ func SetupRouter(cfg *config.Config, c *container.Container) *gin.Engine {
 	// 静态文件服务（上传的图片）必须放在前面。
 	r.Static("/uploads", "./uploads")
 
-	// SEO 资源（动态生成）。
-	sitemaptransport.RegisterRoutes(r, sitemaptransport.NewHandler(c.SitemapService, sitemapbrand.New(c.SettingService)))
+	// SEO 资源（动态生成）。传入真实后台路径，避免 robots.txt 硬编码 /admin/
+	// 而与 web.admin_path 的实际配置不符。
+	sitemaptransport.RegisterRoutes(r, sitemaptransport.NewHandler(c.SitemapService, sitemapbrand.New(c.SettingService), cfg.Web.AdminPath))
 
 	apiV1 := r.Group("/api/v1")
 	orderhttp.RegisterFolio(apiV1, c.OrderStore, c.PaymentStore, func() string {

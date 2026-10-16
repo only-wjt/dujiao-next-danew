@@ -55,7 +55,7 @@
           </header>
 
           <!-- Post Content -->
-          <div v-html="processHtmlForDisplay(getLocalizedText(post.content))"
+          <div v-html="sanitizeRichTextHtml(getLocalizedText(post.content))"
             class="prose prose-lg max-w-none dark:prose-invert theme-prose">
           </div>
 
@@ -119,7 +119,7 @@
 import { useI18n } from 'vue-i18n'
 import { ArrowLeft, AlertCircle } from 'lucide-vue-next'
 import { getImageUrl } from '../utils/image'
-import { processHtmlForDisplay } from '../utils/content'
+import { sanitizeRichTextHtml } from '../utils/content'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'

@@ -242,7 +242,7 @@ func TestSitemapServiceIncludesActiveContent(t *testing.T) {
 func TestSitemapServiceGenerateRobotsIncludesSitemapURL(t *testing.T) {
 	svc, _ := newSitemapServiceForTest(t, nil)
 
-	body := svc.GenerateRobots("https://example.com")
+	body := svc.GenerateRobots("https://example.com", "/admin")
 
 	mustContain := []string{
 		"User-agent: *",
@@ -254,6 +254,62 @@ func TestSitemapServiceGenerateRobotsIncludesSitemapURL(t *testing.T) {
 		if !strings.Contains(body, s) {
 			t.Errorf("robots.txt should contain %q\noutput:\n%s", s, body)
 		}
+	}
+}
+
+// TestSitemapServiceGenerateRobotsFollowsConfiguredAdminPath 确认 robots.txt 跟随
+// web.admin_path 的实际配置，而不是硬编码 /admin/。
+//
+// 此前硬编码的后果是双向的：改成自定义路径后，真正生效的后台路径没有任何条目，
+// 而 robots.txt 却把默认的 /admin/ 当作真实路径公布出去。
+func TestSitemapServiceGenerateRobotsFollowsConfiguredAdminPath(t *testing.T) {
+	svc, _ := newSitemapServiceForTest(t, nil)
+
+	body := svc.GenerateRobots("https://example.com", "/dj-mgmt-7x9k2")
+
+	if !strings.Contains(body, "Disallow: /dj-mgmt-7x9k2/") {
+		t.Errorf("robots.txt should disallow the configured admin path\noutput:\n%s", body)
+	}
+	if strings.Contains(body, "Disallow: /admin/") {
+		t.Errorf("robots.txt must not advertise the default /admin/ when a custom path is configured\noutput:\n%s", body)
+	}
+}
+
+// TestSitemapServiceGenerateRobotsHandlesOddAdminPaths 覆盖规范化的边界：
+// 空值、根路径、缺前导斜杠、带尾斜杠，以及试图注入额外指令行的换行值。
+func TestSitemapServiceGenerateRobotsHandlesOddAdminPaths(t *testing.T) {
+	svc, _ := newSitemapServiceForTest(t, nil)
+
+	cases := []struct {
+		name      string
+		adminPath string
+		wantLine  string
+		wantNone  bool
+	}{
+		{"empty", "", "", true},
+		{"root", "/", "", true},
+		{"missing leading slash", "mgmt-secret", "Disallow: /mgmt-secret/", false},
+		{"trailing slash", "/mgmt-secret/", "Disallow: /mgmt-secret/", false},
+		{"newline injection", "/mgmt\nDisallow: /nothing", "", true},
+		{"carriage return injection", "/mgmt\r\nSitemap: https://evil.example", "", true},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			body := svc.GenerateRobots("https://example.com", tc.adminPath)
+			if tc.wantNone {
+				if strings.Contains(body, "evil.example") {
+					t.Errorf("robots.txt should not accept an injected value\noutput:\n%s", body)
+				}
+				if strings.Contains(body, "Disallow: /nothing") {
+					t.Errorf("robots.txt should not accept an injected value\noutput:\n%s", body)
+				}
+				return
+			}
+			if !strings.Contains(body, tc.wantLine) {
+				t.Errorf("robots.txt should contain %q\noutput:\n%s", tc.wantLine, body)
+			}
+		})
 	}
 }
 
