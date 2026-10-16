@@ -113,6 +113,16 @@ func main() {
 		stdLog.Printf("警告: web.admin_path 仍为默认 /admin，建议修改为不易猜测的路径以降低自动化扫描风险")
 	}
 
+	// cors.allowed_origins 为 "*" 且 allow_credentials 为 true 的组合会静默失效：
+	// 携带凭证的跨域请求必须回显具体来源，通配符无法回显，因此该组合下一律不下发
+	// CORS 头 —— 连公开接口的 "*" 也没有了。旧版本在这种配置下会把请求来源原样
+	// 反射回去，所以就地升级的部署最可能踩到：行为从「任意来源可读」直接变成
+	// 「完全不可跨域」，且没有任何报错。这里明确提示，避免靠猜。
+	if corsAllowsEveryOrigin(cfg.CORS.AllowedOrigins) && cfg.CORS.AllowCredentials {
+		stdLog.Printf("警告: cors.allowed_origins 为 \"*\" 且 allow_credentials 为 true，该组合不会下发任何 CORS 头；" +
+			"如需跨域携带凭证，请把 allowed_origins 改为具体来源；仅需公开只读接口跨域，请设置 allow_credentials: false")
+	}
+
 	// 自动创建数据目录（fullstack 二进制小白部署免去手动 mkdir）
 	for _, dir := range []string{"db", "uploads", "logs"} {
 		if err := os.MkdirAll(dir, 0o755); err != nil {
@@ -293,6 +303,18 @@ func containsString(values []string, target string) bool {
 		}
 	}
 	return false
+}
+
+// corsAllowsEveryOrigin 报告 CORS 白名单是否为「放行全部来源」。
+//
+// 与中间件里的判定保持一致：只有唯一一项且为 "*" 才算通配；列表里混有具体来源时
+// 仍按具体来源匹配，不应触发提示。校验发生在默认值填充之后，因此这里的空列表
+// 情况实际不会出现（默认已替换为 ["*"]）。
+func corsAllowsEveryOrigin(origins []string) bool {
+	if len(origins) != 1 {
+		return false
+	}
+	return strings.TrimSpace(origins[0]) == "*"
 }
 
 func unsafeBootstrapAdminPassword(cfg *config.Config, password string) bool {

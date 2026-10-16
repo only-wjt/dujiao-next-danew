@@ -50,10 +50,13 @@ func CORSMiddleware(cfg config.CORSConfig) gin.HandlerFunc {
 	}
 	methodsHeader := strings.Join(allowedMethods, ", ")
 	headersHeader := strings.Join(allowedHeaders, ", ")
-	// 只有「纯通配且不带凭证」时响应才与请求来源无关，可以安全共享缓存。
-	// 其余任何配置下回显值都取决于 Origin，必须声明 Vary: Origin，
-	// 否则中间缓存会把发给某个来源的响应复用到另一个来源上。
-	variesByOrigin := cfg.AllowCredentials || !isPureWildcardAllowlist(allowedOrigins)
+	// 只有白名单是纯通配（唯一一项为 "*"）时，回显值才与请求来源无关：
+	// 该配置下 resolveAllowedOrigin 恒定返回 "*"（不带凭证）或 ""（带凭证，
+	// 此时通配符不可用），两者都不随 Origin 变化，响应可安全共享缓存。
+	//
+	// 其余配置（含具体来源，或 "*" 与具体来源混写）都要按来源匹配，必须声明
+	// Vary: Origin，否则中间缓存会把发给某个来源的响应复用到另一个来源上。
+	variesByOrigin := !isPureWildcardAllowlist(allowedOrigins)
 
 	return func(c *gin.Context) {
 		origin := c.GetHeader("Origin")
@@ -62,6 +65,8 @@ func CORSMiddleware(cfg config.CORSConfig) gin.HandlerFunc {
 			c.Writer.Header().Set("Access-Control-Allow-Origin", allowedOrigin)
 		}
 		if variesByOrigin {
+			// 用 Add 而非 Set：上游可能已经写过 Vary（如 Accept-Encoding），
+			// 多行 Vary 在语义上等价于逗号合并，不会覆盖已有值。
 			c.Writer.Header().Add("Vary", "Origin")
 		}
 		// 只有确实回显了具体来源时才能声明允许凭证。与 "*" 组合或没有可用来源时
