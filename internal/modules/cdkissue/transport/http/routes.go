@@ -7,6 +7,7 @@ func RegisterAdminRoutes(admin gin.IRoutes, handler *AdminHandler) {
 	if admin == nil || handler == nil {
 		panic("cdkissue admin routes: required dependency is nil")
 	}
+	admin.GET("/cdk-issue/configs", handler.ListConfigs)
 	admin.GET("/cdk-issue/config", handler.GetConfig)
 	admin.PUT("/cdk-issue/config", handler.UpdateConfig)
 	admin.POST("/cdk-issue/config/test", handler.TestConnection)

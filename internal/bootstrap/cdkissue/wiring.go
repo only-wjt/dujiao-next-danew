@@ -1,4 +1,4 @@
-// Package cdkissuebootstrap 装配 ZovoCard 实时发码模块。
+// Package cdkissuebootstrap 装配实时发码模块（danew_cdk / ZovoCard 两个渠道）。
 package cdkissuebootstrap
 
 import (
@@ -7,6 +7,8 @@ import (
 	productdomain "github.com/dujiao-next/internal/modules/catalog/product/domain"
 	cdkissueapp "github.com/dujiao-next/internal/modules/cdkissue/application"
 	cdkissuecontract "github.com/dujiao-next/internal/modules/cdkissue/contract"
+	cdkissuedomain "github.com/dujiao-next/internal/modules/cdkissue/domain"
+	"github.com/dujiao-next/internal/modules/cdkissue/infrastructure/danewcdk"
 	"github.com/dujiao-next/internal/modules/cdkissue/infrastructure/zovocard"
 	"github.com/dujiao-next/internal/queue"
 )
@@ -33,8 +35,11 @@ type Dependencies struct {
 // New 创建实时发码服务。告警通知器在通知中心构造后通过 SetAlertNotifier 注入。
 func New(deps Dependencies) *cdkissueapp.Service {
 	return cdkissueapp.NewService(cdkissueapp.Options{
-		Store:        deps.Store,
-		Gateway:      zovocard.New(nil),
+		Store: deps.Store,
+		Gateways: map[string]cdkissuecontract.Gateway{
+			cdkissuedomain.ProviderZovoCard: zovocard.New(nil),
+			cdkissuedomain.ProviderDanewCDK: danewcdk.New(nil),
+		},
 		Products:     productReader{products: deps.Products, skus: deps.SKUs},
 		Fulfillments: fulfillmentEnqueuer{client: deps.Queue},
 		AppSecretKey: deps.AppSecretKey,

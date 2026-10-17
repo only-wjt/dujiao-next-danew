@@ -132,13 +132,14 @@ func (s *Service) SaveBinding(ctx context.Context, productID uint, input Binding
 
 func (s *Service) validateEnabledBinding(ctx context.Context, productID uint, product *cdkissuecontract.Product, rows []cdkissuedomain.Binding) error {
 	binding := cdkissuedomain.NewProductBinding(productID, rows)
-	config, err := s.loadConfig()
+	config, err := s.activeConfig()
 	if err != nil {
 		return err
 	}
 	if !config.Configured() {
-		return &cdkissuecontract.BindingError{Reason: "ZovoCard 尚未配置，请先到「ZovoCard 实时发码」设置页填写密钥"}
+		return &cdkissuecontract.BindingError{Reason: "实时发码渠道尚未配置，请先到「实时发码」设置页填写并启用渠道"}
 	}
+	label := providerLabel(config.Provider)
 
 	// 无 SKU 的商品使用默认 SKU（sku_id=0）。
 	targets := []cdkissuecontract.ProductSKU{{ID: 0, Code: "DEFAULT", IsActive: true}}
@@ -158,26 +159,29 @@ func (s *Service) validateEnabledBinding(ctx context.Context, productID uint, pr
 	}
 	for _, sku := range targets {
 		plan, country := binding.Resolve(sku.ID)
-		label := sku.Code
-		if label == "" {
-			label = fmt.Sprintf("#%d", sku.ID)
+		skuLabel := sku.Code
+		if skuLabel == "" {
+			skuLabel = fmt.Sprintf("#%d", sku.ID)
 		}
 		if plan == "" {
-			return &cdkissuecontract.BindingError{Reason: fmt.Sprintf("SKU %s 没有设置套餐，默认套餐也为空", label)}
+			return &cdkissuecontract.BindingError{Reason: fmt.Sprintf("SKU %s 没有设置套餐，默认套餐也为空", skuLabel)}
 		}
 		if overview == nil {
 			continue
 		}
 		info, ok := overview.FindPlan(plan)
 		if !ok {
-			return &cdkissuecontract.BindingError{Reason: fmt.Sprintf("SKU %s 的套餐 %s 在卡台不存在", label, plan)}
+			return &cdkissuecontract.BindingError{Reason: fmt.Sprintf("SKU %s 的套餐 %s 在 %s 不存在", skuLabel, plan, label)}
 		}
 		if !info.Purchasable {
-			return &cdkissuecontract.BindingError{Reason: fmt.Sprintf("SKU %s 的套餐 %s 在卡台已停售", label, plan)}
+			return &cdkissuecontract.BindingError{Reason: fmt.Sprintf("SKU %s 的套餐 %s 在 %s 已停售", skuLabel, plan, label)}
 		}
 		effectiveCountry := config.ResolveCountry(country)
 		if !overview.SupportsCountry(effectiveCountry) {
-			return &cdkissuecontract.BindingError{Reason: fmt.Sprintf("SKU %s 的付款地区 %s 不受卡台支持", label, effectiveCountry)}
+			return &cdkissuecontract.BindingError{Reason: fmt.Sprintf("SKU %s 的付款地区 %s 不受 %s 支持", skuLabel, effectiveCountry, label)}
+		}
+		if !overview.ClientAllows(plan, effectiveCountry) {
+			return &cdkissuecontract.BindingError{Reason: fmt.Sprintf("SKU %s 的套餐 %s / 地区 %s 未在 danew_cdk 卡网客户端授权范围内", skuLabel, plan, effectiveCountry)}
 		}
 	}
 	return nil
@@ -219,7 +223,7 @@ func (s *Service) RealtimeStock(productIDs []uint) (map[uint]int64, error) {
 	if err != nil || len(realtime) == 0 {
 		return map[uint]int64{}, err
 	}
-	config, err := s.loadConfig()
+	config, err := s.activeConfig()
 	if err != nil {
 		return nil, err
 	}

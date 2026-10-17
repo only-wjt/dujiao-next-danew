@@ -40,10 +40,26 @@ func (s *Store) GetConfig(provider string) (*cdkissuedomain.Config, error) {
 
 // SaveConfig 新建或更新配置。
 func (s *Store) SaveConfig(config *cdkissuedomain.Config) error {
+	return saveConfig(s.db, config)
+}
+
+// SaveConfigExclusive 保存启用中的渠道配置，并停用其它渠道。
+func (s *Store) SaveConfigExclusive(config *cdkissuedomain.Config) error {
+	return s.db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Model(&cdkissuedomain.Config{}).
+			Where("provider <> ? AND enabled = ?", config.Provider, true).
+			Update("enabled", false).Error; err != nil {
+			return err
+		}
+		return saveConfig(tx, config)
+	})
+}
+
+func saveConfig(db *gorm.DB, config *cdkissuedomain.Config) error {
 	if config.ID == 0 {
-		return s.db.Create(config).Error
+		return db.Create(config).Error
 	}
-	return s.db.Save(config).Error
+	return db.Save(config).Error
 }
 
 // ListBindings 读取指定商品的全部绑定行。

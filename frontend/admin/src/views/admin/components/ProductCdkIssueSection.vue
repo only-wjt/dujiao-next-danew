@@ -2,7 +2,13 @@
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { adminAPI } from '@/api/admin'
-import type { AdminCdkIssueBinding, AdminCdkIssueConfig, AdminCdkIssueOverview, AdminCdkIssuePlan } from '@/api/types'
+import type {
+  AdminCdkIssueBinding,
+  AdminCdkIssueConfig,
+  AdminCdkIssueConfigs,
+  AdminCdkIssueOverview,
+  AdminCdkIssuePlan,
+} from '@/api/types'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { adminUrl } from '@/utils/adminBase'
@@ -40,8 +46,17 @@ const state = reactive({
 })
 
 const plans = computed<AdminCdkIssuePlan[]>(() => overview.value?.plans || [])
-const regionCodes = computed(() => cdkIssueRegionCodes(overview.value?.payment_regions))
-const configured = computed(() => Boolean(config.value?.app_id && config.value?.has_secret))
+// danew_cdk 只允许客户端被授权的地区（未授权的下单会被拦）。
+const regionCodes = computed(() => {
+  const codes = cdkIssueRegionCodes(overview.value?.payment_regions)
+  const allowed = overview.value?.client?.allowed_countries
+  return allowed ? codes.filter((code) => allowed.includes(code)) : codes
+})
+const configured = computed(() => {
+  const c = config.value
+  if (!c?.has_secret) return false
+  return c.provider === 'danew_cdk' ? Boolean(c.api_base_url) : Boolean(c.app_id)
+})
 const defaultCountry = computed(() => config.value?.default_payment_country || 'PH')
 const realtime = computed(() => state.source === 'realtime')
 
@@ -84,8 +99,15 @@ const reset = () => {
 
 const loadReferenceData = async () => {
   try {
-    const res = await adminAPI.getCdkIssueConfig()
-    config.value = res.data?.data as AdminCdkIssueConfig
+    // 绑定作用于当前启用的渠道；都未启用时展示首个已配置的渠道，提示去启用。
+    const res = await adminAPI.getCdkIssueConfigs()
+    const data = res.data?.data as AdminCdkIssueConfigs
+    const providers = data?.providers || []
+    config.value =
+      providers.find((item) => item.provider === data?.active_provider) ||
+      providers.find((item) => item.has_secret) ||
+      providers[0] ||
+      null
   } catch {
     config.value = null
   }
@@ -94,7 +116,7 @@ const loadReferenceData = async () => {
     return
   }
   try {
-    const res = await adminAPI.getCdkIssueOverview()
+    const res = await adminAPI.getCdkIssueOverview(false, config.value?.provider)
     overview.value = res.data?.data as AdminCdkIssueOverview
   } catch {
     overview.value = null
@@ -216,6 +238,9 @@ const settingsLink = adminUrl('/settings/cdk-issue')
       </div>
       <div v-else-if="config && !config.enabled" class="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-700">
         {{ t('admin.cdkIssue.product.disabledWarning') }}
+      </div>
+      <div v-else-if="config" class="text-xs text-muted-foreground">
+        {{ t('admin.cdkIssue.product.providerHint', { provider: t(`admin.cdkIssue.providers.${config.provider}`) }) }}
       </div>
 
       <div class="grid grid-cols-1 gap-4 md:grid-cols-2">

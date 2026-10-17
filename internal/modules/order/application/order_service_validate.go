@@ -273,7 +273,7 @@ func (s *OrderService) buildOrderResult(input orderCreateParams) (*orderBuildRes
 		}
 		if realtimeIssue != nil {
 			// 下单时固化套餐，之后改动商品绑定不影响已付款订单。
-			cdkissuedomain.ApplyItemSnapshot(orderItem.SKUSnapshotJSON, realtimeIssue.Plan, realtimeIssue.PaymentCountry)
+			cdkissuedomain.ApplyItemSnapshot(orderItem.SKUSnapshotJSON, realtimeIssue.Provider, realtimeIssue.Plan, realtimeIssue.PaymentCountry)
 		}
 		orderItems = append(orderItems, orderItem)
 		plans = append(plans, childOrderPlan{

@@ -83,7 +83,7 @@ func createPaidAutoOrder(t *testing.T, db *gorm.DB, orderNo string, productID ui
 		t.Fatalf("create order failed: %v", err)
 	}
 	skuSnapshot := jsonmap.JSON{"sku_id": 0}
-	cdkissuedomain.ApplyItemSnapshot(skuSnapshot, "plus", "PH")
+	cdkissuedomain.ApplyItemSnapshot(skuSnapshot, "", "plus", "PH")
 	item := &orderdomain.OrderItem{
 		OrderID:         order.ID,
 		ProductID:       productID,

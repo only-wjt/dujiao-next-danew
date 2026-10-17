@@ -208,6 +208,7 @@ onMounted(() => {
           <TableHeader class="bg-muted/40 text-xs text-muted-foreground">
             <TableRow>
               <TableHead class="px-4 py-3">{{ t('admin.cdkIssue.requests.columns.orderNo') }}</TableHead>
+              <TableHead class="px-4 py-3">{{ t('admin.cdkIssue.requests.columns.provider') }}</TableHead>
               <TableHead class="px-4 py-3">{{ t('admin.cdkIssue.requests.columns.item') }}</TableHead>
               <TableHead class="px-4 py-3">{{ t('admin.cdkIssue.requests.columns.plan') }}</TableHead>
               <TableHead class="px-4 py-3">{{ t('admin.cdkIssue.requests.columns.count') }}</TableHead>
@@ -228,6 +229,16 @@ onMounted(() => {
                 <a :href="orderLink(row)" target="_blank" rel="noopener" class="font-mono text-xs text-primary underline-offset-4 hover:underline">
                   {{ row.order_no }} ↗
                 </a>
+              </TableCell>
+              <TableCell class="px-4 py-3 text-xs">
+                <div>{{ t(`admin.cdkIssue.providers.${row.provider || 'zovocard'}`) }}</div>
+                <div
+                  v-if="row.provider_request_id"
+                  class="font-mono text-[11px] text-muted-foreground"
+                  :title="t('admin.cdkIssue.requests.providerRequestId')"
+                >
+                  {{ row.provider_request_id }}
+                </div>
               </TableCell>
               <TableCell class="max-w-[200px] px-4 py-3 text-xs">
                 <div class="truncate">{{ getLocalizedText(row.item_title) || `#${row.product_id}` }}</div>

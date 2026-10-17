@@ -6,6 +6,7 @@ import (
 
 	"github.com/dujiao-next/internal/logger"
 	cdkissuecontract "github.com/dujiao-next/internal/modules/cdkissue/contract"
+	cdkissuedomain "github.com/dujiao-next/internal/modules/cdkissue/domain"
 )
 
 const orderableCheckTimeout = 5 * time.Second
@@ -24,18 +25,22 @@ func (s *Service) CheckOrderable(productID, skuID uint, quantity int) (*cdkissue
 	if !ok {
 		return nil, nil
 	}
-	config, err := s.loadConfig()
+	config, err := s.activeConfig()
 	if err != nil {
 		return nil, err
 	}
-	if !config.Active() {
+	if !config.Active() || s.gateways[cdkissuedomain.NormalizeProvider(config.Provider)] == nil {
 		return nil, cdkissuecontract.ErrNotOrderable
 	}
 	plan, country := binding.Resolve(skuID)
 	if plan == "" || quantity <= 0 {
 		return nil, cdkissuecontract.ErrNotOrderable
 	}
-	snapshot := &cdkissuecontract.RealtimeIssueSnapshot{Plan: plan, PaymentCountry: config.ResolveCountry(country)}
+	snapshot := &cdkissuecontract.RealtimeIssueSnapshot{
+		Provider:       cdkissuedomain.NormalizeProvider(config.Provider),
+		Plan:           plan,
+		PaymentCountry: config.ResolveCountry(country),
+	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), orderableCheckTimeout)
 	defer cancel()
@@ -44,11 +49,18 @@ func (s *Service) CheckOrderable(productID, skuID uint, quantity int) (*cdkissue
 		logger.Warnw("cdk_issue_orderable_overview_unavailable", "product_id", productID, "sku_id", skuID, "error", err)
 		return snapshot, nil
 	}
+	if !overview.CanIssue() {
+		return nil, cdkissuecontract.ErrNotOrderable
+	}
 	info, found := overview.FindPlan(plan)
 	if !found || !info.Purchasable {
 		return nil, cdkissuecontract.ErrNotOrderable
 	}
 	if !overview.SupportsCountry(snapshot.PaymentCountry) {
+		return nil, cdkissuecontract.ErrNotOrderable
+	}
+	// danew_cdk 客户端未被授权的套餐/地区，付款后发码会被 403 拒绝，下单前就拦。
+	if !overview.ClientAllows(plan, snapshot.PaymentCountry) {
 		return nil, cdkissuecontract.ErrNotOrderable
 	}
 	if overview.Balance.SpendableBalance.LessThan(config.MinSpendableBalance) {

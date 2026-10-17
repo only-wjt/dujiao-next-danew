@@ -1234,11 +1234,15 @@ export interface AdminResellerOperationsFinance {
 export type CdkIssueRequestStatus = 'pending' | 'succeeded' | 'failed' | 'unknown'
 export type CdkIssueRetryMode = 'same_key' | 'new_key' | ''
 
+export type CdkIssueProvider = 'danew_cdk' | 'zovocard'
+
 export interface AdminCdkIssueConfig {
+  provider: CdkIssueProvider
   enabled: boolean
   active: boolean
   environment: 'sandbox' | 'production'
   base_url: string
+  api_base_url: string
   app_id: string
   has_secret: boolean
   secret_hint: string
@@ -1271,6 +1275,21 @@ export interface AdminCdkIssueOverview {
   plans: AdminCdkIssuePlan[]
   payment_regions: AdminCdkIssuePaymentRegion[]
   checked_at: string
+  /** 仅 danew_cdk：主台是否可发码 */
+  issuable?: boolean
+  unavailable?: string
+  /** 仅 danew_cdk：本卡网客户端授权范围 */
+  client?: {
+    allowed_plans: string[]
+    allowed_countries: string[]
+    daily_code_limit: number
+    issued_today: number
+  }
+}
+
+export interface AdminCdkIssueConfigs {
+  active_provider: CdkIssueProvider | ''
+  providers: AdminCdkIssueConfig[]
 }
 
 export interface AdminCdkIssueSKUBinding {
@@ -1297,6 +1316,8 @@ export interface AdminCdkIssueRequest {
   product_id: number
   item_title: LocalizedText | null
   sku_id: number
+  provider: CdkIssueProvider
+  provider_request_id: string
   plan: string
   payment_country: string
   count: number

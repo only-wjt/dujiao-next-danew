@@ -67,6 +67,8 @@ type IssueRequest struct {
 	ClaimedUntil *time.Time `json:"-"`
 	CreatedAt    time.Time  `gorm:"index" json:"created_at"`
 	UpdatedAt    time.Time  `gorm:"index" json:"updated_at"`
+	// ProviderRequestID 是 danew_cdk 返回的请求号，两边对账用；ZovoCard 为空。
+	ProviderRequestID string `gorm:"type:varchar(64);not null;default:''" json:"provider_request_id"`
 }
 
 // TableName 指定表名。

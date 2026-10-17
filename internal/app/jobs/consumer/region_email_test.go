@@ -11,7 +11,7 @@ import (
 
 func realtimeItem(country string) orderdomain.OrderItem {
 	snapshot := jsonmap.JSON{}
-	cdkissuedomain.ApplyItemSnapshot(snapshot, "plus", country)
+	cdkissuedomain.ApplyItemSnapshot(snapshot, "", "plus", country)
 	return orderdomain.OrderItem{SKUSnapshotJSON: snapshot}
 }
 
