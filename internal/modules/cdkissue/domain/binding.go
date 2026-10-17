@@ -5,8 +5,30 @@ import (
 	"time"
 )
 
-// ProviderZovoCard 是当前唯一支持的实时发码卡台。
-const ProviderZovoCard = "zovocard"
+const (
+	// ProviderZovoCard 直连 ZovoCard 卡台发码。
+	ProviderZovoCard = "zovocard"
+	// ProviderDanewCDK 通过 danew_cdk 卡网接口发码：码进 danew_cdk 库，买家在 cdk 站兑换、查单。
+	ProviderDanewCDK = "danew_cdk"
+)
+
+// Providers 是支持的实时发码渠道。
+var Providers = []string{ProviderDanewCDK, ProviderZovoCard}
+
+// NormalizeProvider 未知或空值视为 ZovoCard：实时发码最初只有这一个渠道，
+// 历史订单快照与配置行都没有记录 provider。
+func NormalizeProvider(provider string) string {
+	if strings.EqualFold(strings.TrimSpace(provider), ProviderDanewCDK) {
+		return ProviderDanewCDK
+	}
+	return ProviderZovoCard
+}
+
+// IsKnownProvider 用于校验后台提交的渠道名。
+func IsKnownProvider(provider string) bool {
+	provider = strings.ToLower(strings.TrimSpace(provider))
+	return provider == ProviderZovoCard || provider == ProviderDanewCDK
+}
 
 // Binding 描述商品（sku_id=0）或 SKU 与卡台套餐的对应关系。
 //
@@ -102,14 +124,14 @@ func NormalizeCountry(country string) string {
 // itemSnapshotKey 是订单项 SKU 快照中记录实时发码参数的键。
 const itemSnapshotKey = "cdk_issue"
 
-// ApplyItemSnapshot 在下单时把实时发码套餐固化到订单项快照，
-// 之后修改或关闭商品绑定都不会改变已下单订单的发码方式。
-func ApplyItemSnapshot(snapshot map[string]interface{}, plan, country string) {
+// ApplyItemSnapshot 在下单时把实时发码渠道与套餐固化到订单项快照，
+// 之后修改商品绑定或切换发码渠道都不会改变已下单订单的发码方式。
+func ApplyItemSnapshot(snapshot map[string]interface{}, provider, plan, country string) {
 	if snapshot == nil {
 		return
 	}
 	snapshot[itemSnapshotKey] = map[string]interface{}{
-		"provider":        ProviderZovoCard,
+		"provider":        NormalizeProvider(provider),
 		"plan":            NormalizePlan(plan),
 		"payment_country": NormalizeCountry(country),
 	}
@@ -117,18 +139,25 @@ func ApplyItemSnapshot(snapshot map[string]interface{}, plan, country string) {
 
 // ReadItemSnapshot 读取订单项上的实时发码快照。
 func ReadItemSnapshot(snapshot map[string]interface{}) (plan, country string, ok bool) {
+	_, plan, country, ok = ReadItemSnapshotProvider(snapshot)
+	return plan, country, ok
+}
+
+// ReadItemSnapshotProvider 同 ReadItemSnapshot，并返回发码渠道；旧快照没有渠道时视为 ZovoCard。
+func ReadItemSnapshotProvider(snapshot map[string]interface{}) (provider, plan, country string, ok bool) {
 	if snapshot == nil {
-		return "", "", false
+		return "", "", "", false
 	}
 	raw, exists := snapshot[itemSnapshotKey].(map[string]interface{})
 	if !exists {
-		return "", "", false
+		return "", "", "", false
 	}
+	provider, _ = raw["provider"].(string)
 	plan, _ = raw["plan"].(string)
 	country, _ = raw["payment_country"].(string)
 	plan = NormalizePlan(plan)
 	if plan == "" {
-		return "", "", false
+		return "", "", "", false
 	}
-	return plan, NormalizeCountry(country), true
+	return NormalizeProvider(provider), plan, NormalizeCountry(country), true
 }

@@ -19,10 +19,11 @@ const gatewayCallTimeout = 30 * time.Second
 
 // AdminService 是后台实时发码用例端口。
 type AdminService interface {
-	GetConfig() (cdkissueapp.ConfigView, error)
-	UpdateConfig(patch cdkissueapp.ConfigPatch) (cdkissueapp.ConfigView, error)
-	TestConnection(ctx context.Context, patch cdkissueapp.ConfigPatch) (*cdkissuedomain.Overview, error)
-	Overview(ctx context.Context, force bool) (*cdkissuedomain.Overview, error)
+	GetConfig(provider string) (cdkissueapp.ConfigView, error)
+	ListConfigs() (cdkissueapp.ConfigsView, error)
+	UpdateConfig(provider string, patch cdkissueapp.ConfigPatch) (cdkissueapp.ConfigView, error)
+	TestConnection(ctx context.Context, provider string, patch cdkissueapp.ConfigPatch) (*cdkissuedomain.Overview, error)
+	Overview(ctx context.Context, provider string, force bool) (*cdkissuedomain.Overview, error)
 	GetBinding(productID uint) (cdkissueapp.BindingView, error)
 	SaveBinding(ctx context.Context, productID uint, input cdkissueapp.BindingInput) (cdkissueapp.BindingView, error)
 	ListRequests(filter cdkissuecontract.RequestFilter) ([]cdkissueapp.RequestView, int64, error)
@@ -60,11 +61,12 @@ func respondServiceError(c *gin.Context, err error) {
 		if gatewayErr.ErrorCode != "" {
 			msg = gatewayErr.ErrorCode + ": " + msg
 		}
+		label := providerLabel(c.Query("provider"))
 		if gatewayErr.HTTPStatus == 401 || gatewayErr.HTTPStatus == 403 {
-			ginutil.RespondErrorWithMsg(c, response.CodeBadRequest, "ZovoCard 鉴权失败（检查密钥、IP 白名单）："+msg, err)
+			ginutil.RespondErrorWithMsg(c, response.CodeBadRequest, label+" 鉴权失败（检查密钥、IP 白名单）："+msg, err)
 			return
 		}
-		ginutil.RespondErrorWithMsg(c, response.CodeBadRequest, "ZovoCard 返回错误："+msg, err)
+		ginutil.RespondErrorWithMsg(c, response.CodeBadRequest, label+" 返回错误："+msg, err)
 	case errors.Is(err, cdkissuecontract.ErrNotConfigured):
 		ginutil.RespondError(c, response.CodeBadRequest, "error.cdk_issue_not_configured", nil)
 	case errors.Is(err, cdkissuecontract.ErrNotFound):
@@ -82,9 +84,20 @@ func respondServiceError(c *gin.Context, err error) {
 	}
 }
 
-// GetConfig GET /admin/cdk-issue/config
+// providerLabel 是错误提示里的渠道名；未指定渠道（当前启用渠道）时不猜具体名字。
+func providerLabel(provider string) string {
+	if strings.TrimSpace(provider) == "" {
+		return "发码渠道"
+	}
+	if cdkissuedomain.NormalizeProvider(provider) == cdkissuedomain.ProviderDanewCDK {
+		return "danew_cdk"
+	}
+	return "ZovoCard"
+}
+
+// GetConfig GET /admin/cdk-issue/config?provider=zovocard|danew_cdk
 func (h *AdminHandler) GetConfig(c *gin.Context) {
-	view, err := h.service.GetConfig()
+	view, err := h.service.GetConfig(c.Query("provider"))
 	if err != nil {
 		respondServiceError(c, err)
 		return
@@ -92,14 +105,24 @@ func (h *AdminHandler) GetConfig(c *gin.Context) {
 	response.Success(c, view)
 }
 
-// UpdateConfig PUT /admin/cdk-issue/config
+// ListConfigs GET /admin/cdk-issue/configs — 全部渠道配置与当前启用渠道。
+func (h *AdminHandler) ListConfigs(c *gin.Context) {
+	views, err := h.service.ListConfigs()
+	if err != nil {
+		respondServiceError(c, err)
+		return
+	}
+	response.Success(c, views)
+}
+
+// UpdateConfig PUT /admin/cdk-issue/config?provider=
 func (h *AdminHandler) UpdateConfig(c *gin.Context) {
 	var patch cdkissueapp.ConfigPatch
 	if err := c.ShouldBindJSON(&patch); err != nil {
 		ginutil.RespondBindError(c, err)
 		return
 	}
-	view, err := h.service.UpdateConfig(patch)
+	view, err := h.service.UpdateConfig(c.Query("provider"), patch)
 	if err != nil {
 		respondServiceError(c, err)
 		return
@@ -107,7 +130,7 @@ func (h *AdminHandler) UpdateConfig(c *gin.Context) {
 	response.Success(c, view)
 }
 
-// TestConnection POST /admin/cdk-issue/config/test
+// TestConnection POST /admin/cdk-issue/config/test?provider=
 func (h *AdminHandler) TestConnection(c *gin.Context) {
 	var patch cdkissueapp.ConfigPatch
 	if err := c.ShouldBindJSON(&patch); err != nil {
@@ -116,7 +139,7 @@ func (h *AdminHandler) TestConnection(c *gin.Context) {
 	}
 	ctx, cancel := context.WithTimeout(c.Request.Context(), gatewayCallTimeout)
 	defer cancel()
-	overview, err := h.service.TestConnection(ctx, patch)
+	overview, err := h.service.TestConnection(ctx, c.Query("provider"), patch)
 	if err != nil {
 		respondServiceError(c, err)
 		return
@@ -124,12 +147,12 @@ func (h *AdminHandler) TestConnection(c *gin.Context) {
 	response.Success(c, overview)
 }
 
-// GetOverview GET /admin/cdk-issue/overview?refresh=1
+// GetOverview GET /admin/cdk-issue/overview?refresh=1&provider=（空 = 当前启用渠道）
 func (h *AdminHandler) GetOverview(c *gin.Context) {
 	force, _ := ginutil.ParseQueryBool(c, "refresh")
 	ctx, cancel := context.WithTimeout(c.Request.Context(), gatewayCallTimeout)
 	defer cancel()
-	overview, err := h.service.Overview(ctx, force)
+	overview, err := h.service.Overview(ctx, c.Query("provider"), force)
 	if err != nil {
 		respondServiceError(c, err)
 		return

@@ -152,8 +152,8 @@ func newFixture(t *testing.T) *fixture {
 		now:     time.Date(2026, 10, 16, 12, 0, 0, 0, time.UTC),
 	}
 	f.service = cdkissueapp.NewService(cdkissueapp.Options{
-		Store:   f.store,
-		Gateway: f.gateway,
+		Store:    f.store,
+		Gateways: map[string]cdkissuecontract.Gateway{cdkissuedomain.ProviderZovoCard: f.gateway},
 		Products: fakeProducts{products: map[uint]*cdkissuecontract.Product{
 			1: {ID: 1, FulfillmentType: "auto", SKUs: []cdkissuecontract.ProductSKU{{ID: 10, Code: "PLUS", IsActive: true}, {ID: 11, Code: "PRO", IsActive: true}}},
 			2: {ID: 2, FulfillmentType: "manual"},
@@ -170,7 +170,7 @@ func ptr[T any](value T) *T { return &value }
 
 func (f *fixture) configure(t *testing.T) {
 	t.Helper()
-	if _, err := f.service.UpdateConfig(cdkissueapp.ConfigPatch{
+	if _, err := f.service.UpdateConfig("", cdkissueapp.ConfigPatch{
 		AppID:     ptr("ak_test"),
 		AppSecret: ptr("sk_live_secret_a1b2"),
 		Enabled:   ptr(true),
@@ -193,7 +193,7 @@ func (f *fixture) bind(t *testing.T) {
 // realtimeItem 模拟下单时固化了实时发码快照的订单项。
 func realtimeItem(itemID, skuID uint, quantity int, plan, country string) cdkissuecontract.IssueOrderItem {
 	snapshot := jsonmap.JSON{"sku_id": skuID}
-	cdkissuedomain.ApplyItemSnapshot(snapshot, plan, country)
+	cdkissuedomain.ApplyItemSnapshot(snapshot, "", plan, country)
 	return cdkissuecontract.NewIssueOrderItem(itemID, 1, skuID, quantity, jsonmap.JSON{"zh-CN": "测试商品"}, snapshot)
 }
 
@@ -207,11 +207,11 @@ func order(quantity int) cdkissuecontract.IssueOrder {
 
 func TestConfigMasksSecretAndRequiresCredentialsToEnable(t *testing.T) {
 	f := newFixture(t)
-	if _, err := f.service.UpdateConfig(cdkissueapp.ConfigPatch{Enabled: ptr(true)}); !errors.Is(err, cdkissuecontract.ErrConfigInvalid) {
+	if _, err := f.service.UpdateConfig("", cdkissueapp.ConfigPatch{Enabled: ptr(true)}); !errors.Is(err, cdkissuecontract.ErrConfigInvalid) {
 		t.Fatalf("enable without credentials should fail, got %v", err)
 	}
 	f.configure(t)
-	view, err := f.service.GetConfig()
+	view, err := f.service.GetConfig("")
 	if err != nil {
 		t.Fatalf("GetConfig: %v", err)
 	}
@@ -224,10 +224,10 @@ func TestConfigMasksSecretAndRequiresCredentialsToEnable(t *testing.T) {
 		t.Fatalf("secret must be stored encrypted")
 	}
 	// 留空 secret 保存不应清掉原值。
-	if _, err := f.service.UpdateConfig(cdkissueapp.ConfigPatch{AppSecret: ptr("")}); err != nil {
+	if _, err := f.service.UpdateConfig("", cdkissueapp.ConfigPatch{AppSecret: ptr("")}); err != nil {
 		t.Fatalf("UpdateConfig: %v", err)
 	}
-	view, _ = f.service.GetConfig()
+	view, _ = f.service.GetConfig("")
 	if !view.HasSecret {
 		t.Fatalf("empty secret must keep the stored one")
 	}
@@ -473,7 +473,7 @@ func TestCheckOrderable(t *testing.T) {
 		t.Fatalf("unreachable card platform should not block orders: snapshot=%v err=%v", snapshot, err)
 	}
 
-	if _, err := f.service.UpdateConfig(cdkissueapp.ConfigPatch{Enabled: ptr(false)}); err != nil {
+	if _, err := f.service.UpdateConfig("", cdkissueapp.ConfigPatch{Enabled: ptr(false)}); err != nil {
 		t.Fatalf("UpdateConfig: %v", err)
 	}
 	if _, err := f.service.CheckOrderable(1, 10, 1); !errors.Is(err, cdkissuecontract.ErrNotOrderable) {

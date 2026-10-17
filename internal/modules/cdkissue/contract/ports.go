@@ -23,6 +23,8 @@ type RequestFilter struct {
 type Store interface {
 	GetConfig(provider string) (*cdkissuedomain.Config, error)
 	SaveConfig(config *cdkissuedomain.Config) error
+	// SaveConfigExclusive 保存一个启用中的渠道配置，并在同一事务里停用其它渠道。
+	SaveConfigExclusive(config *cdkissuedomain.Config) error
 
 	ListBindings(productIDs []uint) ([]cdkissuedomain.Binding, error)
 	ReplaceBindings(productID uint, rows []cdkissuedomain.Binding) error
@@ -65,6 +67,9 @@ type IssueCommand struct {
 	Count          int
 	PaymentCountry string
 	IdempotencyKey string
+	// OrderNo / ExternalRef 仅用于渠道侧检索与对账（danew_cdk），不参与幂等。
+	OrderNo     string
+	ExternalRef string
 }
 
 // IssuedCode 是卡台返回的一张码。
@@ -79,6 +84,8 @@ type IssuedCode struct {
 type IssueResult struct {
 	Codes    []IssuedCode
 	Replayed bool
+	// ProviderRequestID 是渠道侧请求号（danew_cdk），用于两边对账。
+	ProviderRequestID string
 }
 
 // DisableResult 是批量停用结果。
@@ -126,15 +133,16 @@ type IssueOrderItem struct {
 	SKUID       uint
 	Quantity    int
 	Title       jsonmap.JSON
-	// Realtime/Plan/PaymentCountry 来自下单时固化在订单项上的快照。
+	// Realtime/Provider/Plan/PaymentCountry 来自下单时固化在订单项上的快照。
 	Realtime       bool
+	Provider       string
 	Plan           string
 	PaymentCountry string
 }
 
 // NewIssueOrderItem 从订单项快照构造发码订单项。
 func NewIssueOrderItem(orderItemID, productID, skuID uint, quantity int, title, skuSnapshot jsonmap.JSON) IssueOrderItem {
-	plan, country, ok := cdkissuedomain.ReadItemSnapshot(skuSnapshot)
+	provider, plan, country, ok := cdkissuedomain.ReadItemSnapshotProvider(skuSnapshot)
 	return IssueOrderItem{
 		OrderItemID:    orderItemID,
 		ProductID:      productID,
@@ -142,6 +150,7 @@ func NewIssueOrderItem(orderItemID, productID, skuID uint, quantity int, title, 
 		Quantity:       quantity,
 		Title:          title,
 		Realtime:       ok,
+		Provider:       provider,
 		Plan:           plan,
 		PaymentCountry: country,
 	}
@@ -170,6 +179,7 @@ type RealtimeIssuer interface {
 
 // RealtimeIssueSnapshot 是下单时确定的实时发码参数。
 type RealtimeIssueSnapshot struct {
+	Provider       string
 	Plan           string
 	PaymentCountry string
 }

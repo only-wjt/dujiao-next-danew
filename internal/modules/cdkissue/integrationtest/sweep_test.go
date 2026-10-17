@@ -45,7 +45,7 @@ func TestSweepStuckOrdersRequeuesOnlyEligibleRealtimeOrders(t *testing.T) {
 		t.Fatalf("migrate: %v", err)
 	}
 	realtime := jsonmap.JSON{}
-	cdkissuedomain.ApplyItemSnapshot(realtime, "plus", "PH")
+	cdkissuedomain.ApplyItemSnapshot(realtime, "", "plus", "PH")
 	stale := f.now.Add(-10 * time.Minute)
 	fresh := f.now.Add(-time.Minute)
 	ancient := f.now.Add(-48 * time.Hour)

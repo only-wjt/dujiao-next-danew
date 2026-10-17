@@ -16,7 +16,7 @@ import (
 func (s *Service) advanceRequest(
 	ctx context.Context,
 	request *cdkissuedomain.IssueRequest,
-	resolveCredentials func() (*cdkissuecontract.Credentials, error),
+	resolveCredentials func(provider string) (*cdkissuecontract.Credentials, error),
 ) ([]string, requestOutcome) {
 	switch request.Status {
 	case cdkissuedomain.RequestStatusSucceeded:
@@ -58,12 +58,14 @@ func (s *Service) reloadAndAdvance(request *cdkissuedomain.IssueRequest) ([]stri
 func (s *Service) callIssue(
 	ctx context.Context,
 	request *cdkissuedomain.IssueRequest,
-	resolveCredentials func() (*cdkissuecontract.Credentials, error),
+	resolveCredentials func(provider string) (*cdkissuecontract.Credentials, error),
 ) ([]string, requestOutcome) {
-	credentials, err := resolveCredentials()
-	if err != nil {
+	gateway, gatewayErr := s.gatewayFor(request.Provider)
+	credentials, err := resolveCredentials(request.Provider)
+	if gatewayErr != nil || err != nil {
 		// 没有发出请求，不可能扣费，可放心换新键重试。
-		return s.finishRequest(request, cdkissuedomain.RequestStatusFailed, 0, errorCodeNotConfigured, "ZovoCard 未配置或密钥无法解密", true)
+		return s.finishRequest(request, cdkissuedomain.RequestStatusFailed, 0, errorCodeNotConfigured,
+			providerLabel(request.Provider)+" 未配置或密钥无法解密", true)
 	}
 
 	// 原子占用：同一请求同一时刻只允许一个任务调用卡台；尝试次数在占用时落库。
@@ -81,11 +83,13 @@ func (s *Service) callIssue(
 	request.ClaimedUntil = &until
 	request.UpdatedAt = now
 
-	result, err := s.gateway.Issue(ctx, *credentials, cdkissuecontract.IssueCommand{
+	result, err := gateway.Issue(ctx, *credentials, cdkissuecontract.IssueCommand{
 		Plan:           request.Plan,
 		Count:          request.Count,
 		PaymentCountry: request.PaymentCountry,
 		IdempotencyKey: request.IdempotencyKey,
+		OrderNo:        request.OrderNo,
+		ExternalRef:    fmt.Sprintf("item:%d:chunk:%d", request.OrderItemID, request.ChunkIndex),
 	})
 	if err != nil {
 		var gatewayErr *cdkissuecontract.GatewayError
@@ -127,6 +131,7 @@ func (s *Service) callIssue(
 	request.Status = cdkissuedomain.RequestStatusSucceeded
 	request.CodesEncrypted = encrypted
 	request.ProviderCDKIDs = ids
+	request.ProviderRequestID = truncateRunes(strings.TrimSpace(result.ProviderRequestID), 64)
 	request.IssuedCount = len(codes)
 	request.FeeAmountMinor = fee
 	request.LastHTTPStatus = 200
@@ -145,12 +150,22 @@ func (s *Service) callIssue(
 	}
 	logger.Infow("cdk_issue_succeeded",
 		"request_id", request.ID,
+		"provider", request.Provider,
+		"provider_request_id", request.ProviderRequestID,
 		"order_no", request.OrderNo,
 		"plan", request.Plan,
 		"count", request.Count,
 		"replayed", result.Replayed,
 	)
 	return codes, outcomeDone
+}
+
+// providerLabel 是告警与后台展示用的渠道名。
+func providerLabel(provider string) string {
+	if cdkissuedomain.NormalizeProvider(provider) == cdkissuedomain.ProviderDanewCDK {
+		return "danew_cdk"
+	}
+	return "ZovoCard"
 }
 
 // releaseClaim 释放占用，让下一次重试能立即接手。

@@ -25,8 +25,9 @@ type AlertNotifier interface {
 
 // Options 汇总实时发码服务依赖。
 type Options struct {
-	Store        cdkissuecontract.Store
-	Gateway      cdkissuecontract.Gateway
+	Store cdkissuecontract.Store
+	// Gateways 按渠道注册网关，至少需要 zovocard。
+	Gateways     map[string]cdkissuecontract.Gateway
 	Products     cdkissuecontract.ProductReader
 	Fulfillments cdkissuecontract.FulfillmentEnqueuer
 	Alerts       AlertNotifier
@@ -34,20 +35,25 @@ type Options struct {
 	Now          func() time.Time
 }
 
-// Service 编排 ZovoCard 实时发码：配置、商品绑定、发码、重试与停用。
+// Service 编排实时发码：配置、商品绑定、发码、重试与停用。
+// 同一时刻只有一个渠道启用；在途订单按下单时固化的渠道发码。
 type Service struct {
 	store        cdkissuecontract.Store
-	gateway      cdkissuecontract.Gateway
+	gateways     map[string]cdkissuecontract.Gateway
 	products     cdkissuecontract.ProductReader
 	fulfillments cdkissuecontract.FulfillmentEnqueuer
 	alerts       AlertNotifier
 	encryptKey   []byte
 	now          func() time.Time
 
-	overviewMu     sync.Mutex
-	overviewCache  *cdkissuedomain.Overview
-	overviewKey    string
-	overviewExpiry time.Time
+	overviewMu    sync.Mutex
+	overviewCache map[string]cachedOverviewEntry
+}
+
+type cachedOverviewEntry struct {
+	key      string
+	overview *cdkissuedomain.Overview
+	expiry   time.Time
 }
 
 var (
@@ -61,21 +67,28 @@ func NewService(options Options) *Service {
 	if options.Store == nil {
 		panic("cdkissue service: store is nil")
 	}
-	if options.Gateway == nil {
-		panic("cdkissue service: gateway is nil")
+	if options.Gateways[cdkissuedomain.ProviderZovoCard] == nil {
+		panic("cdkissue service: zovocard gateway is nil")
 	}
 	now := options.Now
 	if now == nil {
 		now = time.Now
 	}
+	gateways := make(map[string]cdkissuecontract.Gateway, len(options.Gateways))
+	for provider, gateway := range options.Gateways {
+		if gateway != nil {
+			gateways[cdkissuedomain.NormalizeProvider(provider)] = gateway
+		}
+	}
 	return &Service{
-		store:        options.Store,
-		gateway:      options.Gateway,
-		products:     options.Products,
-		fulfillments: options.Fulfillments,
-		alerts:       options.Alerts,
-		encryptKey:   crypto.DeriveKey(options.AppSecretKey),
-		now:          now,
+		store:         options.Store,
+		gateways:      gateways,
+		products:      options.Products,
+		fulfillments:  options.Fulfillments,
+		alerts:        options.Alerts,
+		encryptKey:    crypto.DeriveKey(options.AppSecretKey),
+		now:           now,
+		overviewCache: map[string]cachedOverviewEntry{},
 	}
 }
 
@@ -89,15 +102,40 @@ func (s *Service) SetFulfillmentEnqueuer(enqueuer cdkissuecontract.FulfillmentEn
 	s.fulfillments = enqueuer
 }
 
-func (s *Service) loadConfig() (cdkissuedomain.Config, error) {
-	stored, err := s.store.GetConfig(cdkissuedomain.ProviderZovoCard)
+// gatewayFor 取渠道网关；未注册的渠道按未配置处理（没有发出请求，不可能扣费）。
+func (s *Service) gatewayFor(provider string) (cdkissuecontract.Gateway, error) {
+	gateway := s.gateways[cdkissuedomain.NormalizeProvider(provider)]
+	if gateway == nil {
+		return nil, cdkissuecontract.ErrNotConfigured
+	}
+	return gateway, nil
+}
+
+func (s *Service) loadConfig(provider string) (cdkissuedomain.Config, error) {
+	provider = cdkissuedomain.NormalizeProvider(provider)
+	stored, err := s.store.GetConfig(provider)
 	if err != nil {
 		return cdkissuedomain.Config{}, err
 	}
 	if stored == nil {
-		return cdkissuedomain.DefaultConfig(), nil
+		return cdkissuedomain.DefaultConfig(provider), nil
 	}
+	stored.Provider = provider
 	return *stored, nil
+}
+
+// activeConfig 返回当前启用的渠道配置；都没启用时返回 ZovoCard 配置（Active()=false）。
+func (s *Service) activeConfig() (cdkissuedomain.Config, error) {
+	for _, provider := range cdkissuedomain.Providers {
+		config, err := s.loadConfig(provider)
+		if err != nil {
+			return cdkissuedomain.Config{}, err
+		}
+		if config.Active() && s.gateways[provider] != nil {
+			return config, nil
+		}
+	}
+	return s.loadConfig(cdkissuedomain.ProviderZovoCard)
 }
 
 func (s *Service) credentials(config cdkissuedomain.Config) (cdkissuecontract.Credentials, error) {
@@ -115,8 +153,13 @@ func (s *Service) credentials(config cdkissuedomain.Config) (cdkissuecontract.Cr
 	}, nil
 }
 
-// cachedOverview 返回缓存的卡台概览；配置变化或过期后重新拉取。
+// cachedOverview 返回缓存的渠道概览；配置变化或过期后重新拉取。
 func (s *Service) cachedOverview(ctx context.Context, config cdkissuedomain.Config, force bool) (*cdkissuedomain.Overview, error) {
+	provider := cdkissuedomain.NormalizeProvider(config.Provider)
+	gateway, err := s.gatewayFor(provider)
+	if err != nil {
+		return nil, err
+	}
 	credentials, err := s.credentials(config)
 	if err != nil {
 		return nil, err
@@ -124,28 +167,24 @@ func (s *Service) cachedOverview(ctx context.Context, config cdkissuedomain.Conf
 	key := config.BaseURL() + "|" + config.AppID + "|" + config.AppSecretEncrypted
 	now := s.now()
 	s.overviewMu.Lock()
-	if !force && s.overviewCache != nil && s.overviewKey == key && now.Before(s.overviewExpiry) {
-		cached := s.overviewCache
+	if entry, ok := s.overviewCache[provider]; ok && !force && entry.key == key && now.Before(entry.expiry) {
 		s.overviewMu.Unlock()
-		return cached, nil
+		return entry.overview, nil
 	}
 	s.overviewMu.Unlock()
 
-	overview, err := s.gateway.Overview(ctx, credentials)
+	overview, err := gateway.Overview(ctx, credentials)
 	if err != nil {
 		return nil, err
 	}
 	s.overviewMu.Lock()
-	s.overviewCache = overview
-	s.overviewKey = key
-	s.overviewExpiry = now.Add(overviewCacheTTL)
+	s.overviewCache[provider] = cachedOverviewEntry{key: key, overview: overview, expiry: now.Add(overviewCacheTTL)}
 	s.overviewMu.Unlock()
 	return overview, nil
 }
 
 func (s *Service) invalidateOverview() {
 	s.overviewMu.Lock()
-	s.overviewCache = nil
-	s.overviewKey = ""
+	s.overviewCache = map[string]cachedOverviewEntry{}
 	s.overviewMu.Unlock()
 }

@@ -44,7 +44,8 @@ func BuiltinRoleSeeds() []RoleSeed {
 				{Object: "/admin/products/:id", Action: "*"},
 				{Object: "/admin/cdk-issue/products/:id/binding", Action: "*"},
 				{Object: "/admin/cdk-issue/overview", Action: "GET"},
-				{Object: "/admin/cdk-issue/config", Action: "GET"}, // 商品弹窗读取脱敏配置（不含密钥）
+				{Object: "/admin/cdk-issue/config", Action: "GET"},  // 商品弹窗读取脱敏配置（不含密钥）
+				{Object: "/admin/cdk-issue/configs", Action: "GET"}, // 商品弹窗按当前启用渠道读取脱敏配置
 				{Object: "/admin/products/:id/wholesale-prices", Action: "PATCH"},
 				{Object: "/admin/categories", Action: "*"},
 				{Object: "/admin/categories/:id", Action: "*"},
@@ -152,6 +153,7 @@ func BuiltinRoleSeeds() []RoleSeed {
 				{Object: "/admin/procurement-orders/:id/retry", Action: "POST"},
 				{Object: "/admin/procurement-orders/:id/cancel", Action: "POST"},
 				{Object: "/admin/cdk-issue/config", Action: "*"},
+				{Object: "/admin/cdk-issue/configs", Action: "GET"},
 				{Object: "/admin/cdk-issue/config/test", Action: "POST"},
 				{Object: "/admin/cdk-issue/overview", Action: "GET"},
 				{Object: "/admin/cdk-issue/products/:id/binding", Action: "*"},

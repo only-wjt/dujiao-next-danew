@@ -15,6 +15,7 @@ import type {
   AdminUser,
   AdminSiteConnection,
   AdminCdkIssueBinding,
+  CdkIssueProvider,
   AdminResellerProfileApprovePayload,
   AdminResellerProfileUpdatePayload,
   AdminResellerProductSettingUpdatePayload,
@@ -596,10 +597,15 @@ export const adminAPI = {
   cancelProcurementOrder: (id: number) => api.post(`/admin/procurement-orders/${id}/cancel`),
 
   // ZovoCard 实时发码
-  getCdkIssueConfig: () => api.get('/admin/cdk-issue/config'),
-  updateCdkIssueConfig: (data: Record<string, unknown>) => api.put('/admin/cdk-issue/config', data),
-  testCdkIssueConfig: (data: Record<string, unknown>) => api.post('/admin/cdk-issue/config/test', data),
-  getCdkIssueOverview: (refresh = false) => api.get('/admin/cdk-issue/overview', { params: refresh ? { refresh: 1 } : {} }),
+  getCdkIssueConfigs: () => api.get('/admin/cdk-issue/configs'),
+  getCdkIssueConfig: (provider: CdkIssueProvider) => api.get('/admin/cdk-issue/config', { params: { provider } }),
+  updateCdkIssueConfig: (provider: CdkIssueProvider, data: Record<string, unknown>) =>
+    api.put('/admin/cdk-issue/config', data, { params: { provider } }),
+  testCdkIssueConfig: (provider: CdkIssueProvider, data: Record<string, unknown>) =>
+    api.post('/admin/cdk-issue/config/test', data, { params: { provider } }),
+  // provider 省略 = 当前启用渠道
+  getCdkIssueOverview: (refresh = false, provider?: CdkIssueProvider) =>
+    api.get('/admin/cdk-issue/overview', { params: { ...(refresh ? { refresh: 1 } : {}), ...(provider ? { provider } : {}) } }),
   getCdkIssueBinding: (productId: number) => api.get(`/admin/cdk-issue/products/${productId}/binding`),
   saveCdkIssueBinding: (productId: number, data: AdminCdkIssueBinding) => api.put(`/admin/cdk-issue/products/${productId}/binding`, data),
   getCdkIssueRequests: (params?: Record<string, unknown>) => api.get('/admin/cdk-issue/requests', { params }),

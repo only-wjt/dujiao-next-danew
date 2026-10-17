@@ -70,28 +70,45 @@ func (s *Service) EnsureIssued(ctx context.Context, order cdkissuecontract.Issue
 		existing[itemChunkKey{row.OrderItemID, row.ChunkIndex}] = row
 	}
 
-	config, err := s.loadConfig()
-	if err != nil {
-		return nil, err
-	}
-
 	rootOrderID := order.RootOrderID
 	if rootOrderID == 0 {
 		rootOrderID = order.OrderID
 	}
 
-	var credentials *cdkissuecontract.Credentials
-	var credentialsErr error
-	resolveCredentials := func() (*cdkissuecontract.Credentials, error) {
-		if credentials == nil && credentialsErr == nil {
-			value, err := s.credentials(config)
-			if err != nil {
-				credentialsErr = err
-			} else {
-				credentials = &value
+	// 按渠道懒加载配置与凭据：同一订单可能混有历史 ZovoCard 请求与新渠道订单项。
+	configs := map[string]cdkissuedomain.Config{}
+	loadProviderConfig := func(provider string) (cdkissuedomain.Config, error) {
+		provider = cdkissuedomain.NormalizeProvider(provider)
+		if config, ok := configs[provider]; ok {
+			return config, nil
+		}
+		config, err := s.loadConfig(provider)
+		if err != nil {
+			return cdkissuedomain.Config{}, err
+		}
+		configs[provider] = config
+		return config, nil
+	}
+	type credentialResult struct {
+		value *cdkissuecontract.Credentials
+		err   error
+	}
+	credentialCache := map[string]credentialResult{}
+	resolveCredentials := func(provider string) (*cdkissuecontract.Credentials, error) {
+		provider = cdkissuedomain.NormalizeProvider(provider)
+		if cached, ok := credentialCache[provider]; ok {
+			return cached.value, cached.err
+		}
+		config, err := loadProviderConfig(provider)
+		if err == nil {
+			var value cdkissuecontract.Credentials
+			if value, err = s.credentials(config); err == nil {
+				credentialCache[provider] = credentialResult{value: &value}
+				return &value, nil
 			}
 		}
-		return credentials, credentialsErr
+		credentialCache[provider] = credentialResult{err: err}
+		return nil, err
 	}
 
 	retryable, halted := false, false
@@ -99,10 +116,15 @@ func (s *Service) EnsureIssued(ctx context.Context, order cdkissuecontract.Issue
 		if !realtime[item.OrderItemID] {
 			continue
 		}
-		plan, country := item.Plan, item.PaymentCountry
-		// 已建过请求时沿用请求上的套餐，保证同一订单项各分片口径一致。
+		provider, plan, country := item.Provider, item.Plan, item.PaymentCountry
+		// 已建过请求时沿用请求上的渠道与套餐，保证同一订单项各分片口径一致。
 		if first := existing[itemChunkKey{item.OrderItemID, 0}]; first != nil {
-			plan, country = first.Plan, first.PaymentCountry
+			provider, plan, country = first.Provider, first.Plan, first.PaymentCountry
+		}
+		provider = cdkissuedomain.NormalizeProvider(provider)
+		config, err := loadProviderConfig(provider)
+		if err != nil {
+			return nil, err
 		}
 		country = config.ResolveCountry(country)
 
@@ -120,7 +142,7 @@ func (s *Service) EnsureIssued(ctx context.Context, order cdkissuecontract.Issue
 					ProductID:      item.ProductID,
 					ItemTitle:      item.Title,
 					SKUID:          item.SKUID,
-					Provider:       cdkissuedomain.ProviderZovoCard,
+					Provider:       provider,
 					Plan:           plan,
 					PaymentCountry: country,
 					Count:          count,

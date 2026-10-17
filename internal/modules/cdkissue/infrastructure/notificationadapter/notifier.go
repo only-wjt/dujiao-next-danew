@@ -39,7 +39,7 @@ func (n *Notifier) NotifyIssueAlert(request *cdkissuedomain.IssueRequest, messag
 		BizType:   constants.NotificationBizTypeCDKIssue,
 		BizID:     request.ID,
 		Data: jsonmap.JSON{
-			"alert_type":      "ZovoCard 实时发码",
+			"alert_type":      providerName(request.Provider) + " 实时发码",
 			"alert_type_key":  "cdk_issue_" + request.Status,
 			"alert_level":     "critical",
 			"alert_value":     request.Status,
@@ -53,6 +53,13 @@ func (n *Notifier) NotifyIssueAlert(request *cdkissuedomain.IssueRequest, messag
 	})
 }
 
+func providerName(provider string) string {
+	if cdkissuedomain.NormalizeProvider(provider) == cdkissuedomain.ProviderDanewCDK {
+		return "danew_cdk"
+	}
+	return "ZovoCard"
+}
+
 // NotifyLowBalance 卡台可用余额低于预警线时告警（通知中心按内容去重）。
 func (n *Notifier) NotifyLowBalance(spendable, threshold decimal.Decimal) error {
 	return n.enqueuer.Enqueue(notificationcontract.EnqueueInput{
@@ -60,12 +67,12 @@ func (n *Notifier) NotifyLowBalance(spendable, threshold decimal.Decimal) error 
 		BizType:   constants.NotificationBizTypeCDKIssue,
 		BizID:     0,
 		Data: jsonmap.JSON{
-			"alert_type":      "ZovoCard 余额不足",
+			"alert_type":      "实时发码余额不足",
 			"alert_type_key":  "cdk_issue_low_balance",
 			"alert_level":     "warning",
 			"alert_value":     spendable.StringFixed(2),
 			"alert_threshold": threshold.StringFixed(2),
-			"message":         fmt.Sprintf("ZovoCard 可用余额 %s U 低于预警线 %s U，实时发码商品已暂停下单，请尽快充值。", spendable.StringFixed(2), threshold.StringFixed(2)),
+			"message":         fmt.Sprintf("发码卡台可用余额 %s U 低于预警线 %s U，实时发码商品已暂停下单，请尽快充值。", spendable.StringFixed(2), threshold.StringFixed(2)),
 		},
 	})
 }
@@ -77,7 +84,7 @@ func (n *Notifier) NotifyRefundDisableFailed(orderNo string, failed int, message
 		BizType:   constants.NotificationBizTypeCDKIssue,
 		BizID:     0,
 		Data: jsonmap.JSON{
-			"alert_type":      "ZovoCard 退款停码",
+			"alert_type":      "实时发码退款停码",
 			"alert_type_key":  "cdk_issue_refund_disable_failed",
 			"alert_level":     "critical",
 			"alert_value":     fmt.Sprintf("%d", failed),

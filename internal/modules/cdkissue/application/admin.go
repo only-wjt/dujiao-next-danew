@@ -128,20 +128,70 @@ func (s *Service) DisableOrderCodes(ctx context.Context, orderID uint) (*cdkissu
 	if err != nil {
 		return nil, err
 	}
-	targets := make([]*cdkissuedomain.IssueRequest, 0)
-	ids := make([]uint, 0)
+	// 码 id 只在各自渠道内有意义，按请求记录的渠道分组停用。
+	targets := map[string][]*cdkissuedomain.IssueRequest{}
+	order := make([]string, 0, 2)
 	for i := range views {
 		request := &views[i].IssueRequest
 		if !request.CanDisableCodes() {
 			continue
 		}
-		targets = append(targets, request)
-		ids = append(ids, request.ProviderCDKIDs...)
+		provider := cdkissuedomain.NormalizeProvider(request.Provider)
+		if _, seen := targets[provider]; !seen {
+			order = append(order, provider)
+		}
+		targets[provider] = append(targets[provider], request)
 	}
-	if len(ids) == 0 {
+	if len(order) == 0 {
 		return nil, cdkissuecontract.ErrDisableNotAllowed
 	}
-	config, err := s.loadConfig()
+	result := &cdkissuecontract.DisableResult{Disabled: []uint{}, Failed: []uint{}}
+	now := s.now()
+	for _, provider := range order {
+		requests := targets[provider]
+		ids := make([]uint, 0)
+		for _, request := range requests {
+			ids = append(ids, request.ProviderCDKIDs...)
+		}
+		partial, err := s.disableProviderCodes(ctx, provider, ids)
+		if err != nil {
+			if len(order) == 1 {
+				return nil, err
+			}
+			// 多渠道时一路失败不影响另一路，失败的码记入 failed 由调用方告警。
+			result.Failed = append(result.Failed, ids...)
+			continue
+		}
+		result.Disabled = append(result.Disabled, partial.Disabled...)
+		result.Failed = append(result.Failed, partial.Failed...)
+		disabled := make(map[uint]bool, len(partial.Disabled))
+		for _, id := range partial.Disabled {
+			disabled[id] = true
+		}
+		for _, request := range requests {
+			allDisabled := true
+			for _, id := range request.ProviderCDKIDs {
+				if !disabled[id] {
+					allDisabled = false
+					break
+				}
+			}
+			if allDisabled {
+				if err := s.store.MarkCodesDisabled(request.ID, now); err != nil {
+					return result, err
+				}
+			}
+		}
+	}
+	return result, nil
+}
+
+func (s *Service) disableProviderCodes(ctx context.Context, provider string, ids []uint) (*cdkissuecontract.DisableResult, error) {
+	gateway, err := s.gatewayFor(provider)
+	if err != nil {
+		return nil, err
+	}
+	config, err := s.loadConfig(provider)
 	if err != nil {
 		return nil, err
 	}
@@ -149,30 +199,7 @@ func (s *Service) DisableOrderCodes(ctx context.Context, orderID uint) (*cdkissu
 	if err != nil {
 		return nil, err
 	}
-	result, err := s.gateway.DisableCDKs(ctx, credentials, ids)
-	if err != nil {
-		return nil, err
-	}
-	disabled := make(map[uint]bool, len(result.Disabled))
-	for _, id := range result.Disabled {
-		disabled[id] = true
-	}
-	now := s.now()
-	for _, request := range targets {
-		allDisabled := true
-		for _, id := range request.ProviderCDKIDs {
-			if !disabled[id] {
-				allDisabled = false
-				break
-			}
-		}
-		if allDisabled {
-			if err := s.store.MarkCodesDisabled(request.ID, now); err != nil {
-				return result, err
-			}
-		}
-	}
-	return result, nil
+	return gateway.DisableCDKs(ctx, credentials, ids)
 }
 
 const (
